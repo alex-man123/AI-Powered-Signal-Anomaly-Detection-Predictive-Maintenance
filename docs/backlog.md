@@ -149,7 +149,7 @@
 
 ## PHASE 1.5 — Dataset Audit (obligatorie, blochează Phase 2)
 
-> **BLOCKER CUNOSCUT:** aceste task-uri necesită fișierele reale MAFAULDA în `/mnt/user-data/uploads`. Nu se execută pe date presupuse sau simulate.
+> **BLOCKER CUNOSCUT:** aceste task-uri necesită fișierele reale MAFAULDA în data/raw/mafaulda/. Nu se execută pe date presupuse sau simulate.
 
 ### TASK 1.5.1 — Localizare și inventariere fișiere dataset
 **Priority:** P0 | **Dependencies:** 1.1 | **Blocks:** 1.5.2–1.5.9, Phase 2
@@ -157,7 +157,7 @@
 **User Story:** Ca ML engineer, vreau un inventar complet al fișierelor MAFAULDA disponibile, astfel încât să pot proiecta corect split-ul train/val/test.
 
 **Implementation Steps:**
-1. Confirmă locația fișierelor uploadate (`/mnt/user-data/uploads`).
+1. Confirmă locația fișierelor uploadate (`data/raw/mafaulda/`).
 2. Scanează recursiv, listează toate fișierele (nume, extensie, dimensiune).
 3. Salvează inventarul brut ca `docs/dataset_audit/file_inventory.csv`.
 
