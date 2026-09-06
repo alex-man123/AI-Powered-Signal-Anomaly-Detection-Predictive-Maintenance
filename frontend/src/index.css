@@ -1,13 +1,28 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
 
-@custom-variant dark (&:is(.dark *));
-
+/*
+ * Design tokens (TASK 1.5) — dark-first, single accent, industrial/professional.
+ * `--color-bg`, `--color-surface`, `--color-accent`, `--color-normal`, `--color-warning`,
+ * `--color-anomaly`, `--font-sans`, `--font-mono` are the canonical tokens (declared once,
+ * here, so Tailwind also exposes them as `bg-normal`/`text-normal`/`font-sans`/etc. utilities).
+ * shadcn/Base UI's own tokens further below are aliased to these wherever the concept
+ * matches 1:1 (background, surface, primary accent, destructive→anomaly) instead of
+ * duplicating raw values. See docs/design-system.md for the full palette and usage rules.
+ */
 @theme inline {
     --font-heading: var(--font-sans);
-    --font-sans: 'Geist Variable', sans-serif;
+    --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --color-bg: oklch(0.16 0.005 260);
+    --color-surface: oklch(0.22 0.006 260);
+    --color-accent: oklch(0.72 0.15 231);
+    --color-normal: oklch(0.75 0.16 145);
+    --color-warning: oklch(0.8 0.15 85);
+    --color-anomaly: oklch(0.7 0.19 25);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -26,7 +41,6 @@
     --color-border: var(--border);
     --color-destructive: var(--destructive);
     --color-accent-foreground: var(--accent-foreground);
-    --color-accent: var(--accent);
     --color-muted-foreground: var(--muted-foreground);
     --color-muted: var(--muted);
     --color-secondary-foreground: var(--secondary-foreground);
@@ -48,73 +62,47 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * shadcn/Base UI tokens — dark-first, single palette (no light theme, no theme-switching
+ * infrastructure per TASK 1.5 scope). Aliased to the design tokens above wherever the
+ * concept matches 1:1; everything else keeps its own dark-mode-appropriate value.
+ * Note: shadcn's own `--accent` (subtle hover-tint surface) is intentionally NOT aliased
+ * to `--color-accent` (the brand accent) — they are different concepts. The brand accent
+ * drives `--primary`/`--ring` instead, which is what buttons/focus rings actually use.
+ */
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+  --background: var(--color-bg);
+  --foreground: oklch(0.96 0.003 260);
+  --card: var(--color-surface);
+  --card-foreground: var(--foreground);
+  --popover: var(--color-surface);
+  --popover-foreground: var(--foreground);
+  --primary: var(--color-accent);
+  --primary-foreground: oklch(0.16 0.01 260);
+  --secondary: oklch(0.27 0.006 260);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.27 0.006 260);
+  --muted-foreground: oklch(0.68 0.01 260);
+  --accent: oklch(0.27 0.006 260);
+  --accent-foreground: var(--foreground);
+  --destructive: var(--color-anomaly);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: var(--color-accent);
+  --chart-1: var(--color-accent);
+  --chart-2: var(--color-normal);
+  --chart-3: var(--color-warning);
+  --chart-4: var(--color-anomaly);
+  --chart-5: oklch(0.55 0.01 260);
+  --radius: 0.625rem;
+  --sidebar: var(--color-surface);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--color-accent);
+  --sidebar-primary-foreground: oklch(0.16 0.01 260);
+  --sidebar-accent: oklch(0.27 0.006 260);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: var(--color-accent);
 }
 
 @layer base {
