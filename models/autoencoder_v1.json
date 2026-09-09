@@ -1,0 +1,31 @@
+{
+  "model_type": "autoencoder",
+  "model_version": "v1",
+  "feature_names": [
+    "mean",
+    "std",
+    "variance",
+    "rms",
+    "peak",
+    "peak_to_peak",
+    "skewness",
+    "kurtosis",
+    "crest_factor",
+    "dominant_frequency",
+    "spectral_centroid",
+    "spectral_bandwidth",
+    "spectral_energy",
+    "spectral_entropy",
+    "band_energy_10_100hz"
+  ],
+  "feature_dimension": 15,
+  "scaler_artifact": "scaler_v1.pkl",
+  "threshold_method": "percentile",
+  "threshold_value": 0.016910125709661005,
+  "score_direction": "higher_is_more_anomalous",
+  "training_split": "train",
+  "dataset_hash": "sha256:95aebdfe4d32407efe9a539531c872b59ddbfa441c3fb1832c986b96aa01fd57",
+  "split_manifest_hash": "sha256:72fc253af4f4c5df6447e82895694d8cd135578fc68733b17074266041d07f54",
+  "random_seed": 42,
+  "created_at": "2026-09-09T19:44:31.098478+00:00"
+}

@@ -1,4 +1,7 @@
 """TASK 6.4 — model persistence (save/load) + inference entry point.
+TASK 7.3 extends this module with the equivalent Isolation-Forest-style
+save/load/inference functions for the Autoencoder (TASK 7.1/7.2) -- see the
+"Autoencoder (TASK 7.3)" section further down this docstring.
 
 Responsibility, precisely scoped: given a TRAINED Isolation Forest (TASK 6.2) and
 its TRAIN-FITTED scaler (TASK 5.4), persist them to disk and reload them such that
@@ -66,6 +69,44 @@ an untrusted request body here (that boundary belongs to a future API task, whic
 must itself decide what paths it is willing to pass in). Callers of this module are
 responsible for only ever pointing it at artifacts this application itself produced
 via `save_model`/`save_scaler`.
+
+Autoencoder (TASK 7.3): `save_autoencoder`/`load_autoencoder` are the Autoencoder
+equivalent of `save_model`/`load_model` above, and `reconstruct`/
+`reconstruction_error` are the Autoencoder equivalent of `predict` -- same
+`ModelPersistenceError` contract (missing artifact, corrupted artifact, wrong
+type), same "never fit/train here" rule.
+
+One real difference from Isolation Forest's joblib-based artifact: `joblib.dump`
+pickles the WHOLE `IsolationForest` object (architecture and all), so
+`joblib.load` alone is self-sufficient. A PyTorch `state_dict()` carries only
+tensor VALUES, not the constructor arguments (`input_dim`/`hidden_dim`/
+`bottleneck_dim`) needed to build a fresh `Autoencoder` before `load_state_dict`
+can even be called -- so `save_autoencoder` saves those three integers alongside
+the state dict in the same `.pt` file (via `torch.save` on a plain dict), and
+`load_autoencoder` reads them back to reconstruct the exact same architecture.
+This is NOT the same artifact as TASK 7.2's own `save_checkpoint`/
+`load_checkpoint` (`app.ml.training`), which additionally carries optimizer state
++ epoch + best-validation-loss for mid-training resume -- a training-time
+artifact, not this module's final "ready for inference" one.
+
+Reconstruction error convention (`reconstruction_error`): per-sample MSE between
+`x` and the model's reconstruction of it, `mean((x - x_hat)**2, axis=1)` -- HIGHER
+error means MORE anomalous (the opposite of Isolation Forest's raw
+`decision_function`, but exactly TASK 6.3/6.5's target pipeline convention,
+`score_direction="higher_is_more_anomalous"`). Unlike `predict()` (Isolation
+Forest), no sign flip is ever applied to a reconstruction error anywhere in this
+module -- it is already in the pipeline's target orientation the moment it is
+computed, so it can be handed directly to `app.ml.scoring.fit_score_normalizer`/
+`normalize_scores`/`calibrate_threshold`/`classify` (TASK 6.3), none of which are
+modified or duplicated here -- those functions never assumed Isolation Forest in
+the first place; only `app.ml.scoring.compute_normalized_scores` is Isolation-
+Forest-specific (it calls `to_anomaly_score`), which is why this module adds its
+own trivial Autoencoder equivalent, `compute_autoencoder_normalized_scores`,
+rather than reusing that one function.
+
+`model.eval()` + `torch.no_grad()` for every inference call here (`reconstruct`,
+`reconstruction_error`) -- never computes gradients, never mutates `model`'s
+weights.
 """
 
 from __future__ import annotations
@@ -74,10 +115,12 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import torch
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
 from app.core.config import get_settings
+from app.ml.autoencoder import Autoencoder
 from app.ml.isolation_forest import DEFAULT_MODEL_FILENAME
 from app.ml.isolation_forest import load_model as _load_isolation_forest_model
 from app.ml.isolation_forest import save_model as _save_isolation_forest_model
@@ -85,6 +128,9 @@ from app.ml.isolation_forest import score as _score_with_isolation_forest
 from app.ml.scaling import DEFAULT_SCALER_FILENAME
 from app.ml.scaling import load_scaler as _load_scaler_artifact
 from app.ml.scaling import save_scaler as _save_scaler_artifact
+from app.ml.scoring import ScoringCalibration, normalize_scores
+
+DEFAULT_AUTOENCODER_FILENAME = "autoencoder_v1.pt"
 
 
 class ModelPersistenceError(ValueError):
@@ -119,6 +165,13 @@ def default_scaler_path() -> Path:
     `default_models_dir()`, matching TASK 5.4's own
     `app.ml.scaling.DEFAULT_SCALER_FILENAME`, unchanged."""
     return default_models_dir() / DEFAULT_SCALER_FILENAME
+
+
+def default_autoencoder_path() -> Path:
+    """Default path for the trained Autoencoder artifact -- exactly
+    `models/autoencoder_v1.pt` under `default_models_dir()`, matching this task's
+    own required filename."""
+    return default_models_dir() / DEFAULT_AUTOENCODER_FILENAME
 
 
 def save_model(model: IsolationForest, path: str | Path | None = None) -> Path:
@@ -252,3 +305,165 @@ def predict(model: IsolationForest, scaler: StandardScaler, features: pd.DataFra
             already defines this failure mode clearly.
     """
     return _score_with_isolation_forest(model, scaler, features)
+
+
+# --- Autoencoder (TASK 7.3) ---
+
+
+def save_autoencoder(model: Autoencoder, path: str | Path | None = None) -> Path:
+    """Persists a trained Autoencoder's `state_dict` plus the architecture
+    hyperparameters needed to reconstruct it (`input_dim`/`hidden_dim`/
+    `bottleneck_dim` -- see module docstring for why these must travel with the
+    state dict, unlike Isolation Forest's joblib artifact). NOT TASK 7.2's own
+    `save_checkpoint` (a different, training-time artifact).
+
+    Args:
+        model: an already-trained `Autoencoder` (TASK 7.1/7.2) -- never fit here.
+        path: where to write the artifact; defaults to `default_autoencoder_path()`.
+
+    Returns:
+        The resolved `Path` the artifact was written to.
+    """
+    resolved_path = Path(path) if path is not None else default_autoencoder_path()
+    resolved_path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(
+        {
+            "state_dict": model.state_dict(),
+            "input_dim": model.input_dim,
+            "hidden_dim": model.hidden_dim,
+            "bottleneck_dim": model.bottleneck_dim,
+        },
+        resolved_path,
+    )
+    return resolved_path
+
+
+def load_autoencoder(path: str | Path | None = None) -> Autoencoder:
+    """Deserializes an Autoencoder previously written by `save_autoencoder`:
+    reconstructs a fresh `Autoencoder` with the saved architecture hyperparameters,
+    loads the saved `state_dict` into it, and sets it to `eval()` mode. NEVER
+    trains/fits anything here.
+
+    Args:
+        path: artifact to load; defaults to `default_autoencoder_path()`.
+
+    Returns:
+        The deserialized `Autoencoder`, in `eval()` mode, ready for `reconstruct`/
+        `reconstruction_error` -- identical to the model that was saved (AC3).
+
+    Raises:
+        ModelPersistenceError: if `path` does not exist, fails to deserialize, or
+            is missing the expected keys (`state_dict`/`input_dim`/`hidden_dim`/
+            `bottleneck_dim`) or a `state_dict` incompatible with them. The
+            original exception (if any) is preserved as `__cause__`.
+    """
+    resolved_path = Path(path) if path is not None else default_autoencoder_path()
+
+    if not resolved_path.exists():
+        raise ModelPersistenceError(f"Autoencoder artifact not found: {resolved_path}")
+
+    try:
+        checkpoint = torch.load(resolved_path, map_location="cpu")
+    except Exception as exc:
+        raise ModelPersistenceError(
+            f"Failed to deserialize Autoencoder artifact at {resolved_path}: {exc}"
+        ) from exc
+
+    try:
+        model = Autoencoder(
+            input_dim=checkpoint["input_dim"],
+            hidden_dim=checkpoint["hidden_dim"],
+            bottleneck_dim=checkpoint["bottleneck_dim"],
+        )
+        model.load_state_dict(checkpoint["state_dict"])
+    except (KeyError, TypeError, RuntimeError) as exc:
+        raise ModelPersistenceError(
+            f"Artifact at {resolved_path} is missing required Autoencoder fields "
+            f"or has an incompatible state_dict: {exc}"
+        ) from exc
+
+    model.eval()
+    return model
+
+
+def _validate_autoencoder_features(features: pd.DataFrame | np.ndarray, input_dim: int) -> torch.Tensor:
+    array = np.asarray(features, dtype=np.float32)
+
+    if array.ndim != 2:
+        raise ModelPersistenceError(
+            f"features must be 2-dimensional (n_samples, n_features), got shape {array.shape}"
+        )
+    if array.shape[0] == 0:
+        raise ModelPersistenceError("features must have at least one row (one window/sample)")
+    if not np.isfinite(array).all():
+        raise ModelPersistenceError(
+            "features contains NaN/Inf values -- refusing to silently mask them"
+        )
+    if array.shape[1] != input_dim:
+        raise ModelPersistenceError(
+            f"features has {array.shape[1]} columns, but model.input_dim is {input_dim}"
+        )
+
+    return torch.from_numpy(array)
+
+
+def reconstruct(model: Autoencoder, features: pd.DataFrame | np.ndarray) -> np.ndarray:
+    """Reconstructs `features` through `model` -- `model.eval()` + `torch.no_grad()`,
+    no gradients computed, `model` never mutated.
+
+    Args:
+        model: a trained (or `load_autoencoder`-reloaded) `Autoencoder`.
+        features: one or more windows' feature rows, shape `(N, model.input_dim)`.
+
+    Returns:
+        The reconstruction as a `numpy.ndarray`, shape `(N, model.input_dim)` --
+        identical shape to `features`.
+
+    Raises:
+        ModelPersistenceError: if `features` is empty, not 2-dimensional, contains
+            NaN/Inf, or has a different column count than `model.input_dim`.
+    """
+    tensor = _validate_autoencoder_features(features, model.input_dim)
+    model.eval()
+    with torch.no_grad():
+        reconstruction = model(tensor)
+    return reconstruction.numpy()
+
+
+def reconstruction_error(model: Autoencoder, features: pd.DataFrame | np.ndarray) -> np.ndarray:
+    """Per-sample reconstruction error: `mean((x - x_hat)**2, axis=1)` -- HIGHER
+    means MORE anomalous (see module docstring's "Reconstruction error convention").
+
+    Args:
+        model: a trained (or `load_autoencoder`-reloaded) `Autoencoder`.
+        features: one or more windows' feature rows, shape `(N, model.input_dim)`.
+
+    Returns:
+        A 1D `numpy.ndarray` of length `N` -- one finite error per row, never a
+        single scalar for the whole batch.
+
+    Raises:
+        ModelPersistenceError: same conditions as `reconstruct`.
+    """
+    tensor = _validate_autoencoder_features(features, model.input_dim)
+    model.eval()
+    with torch.no_grad():
+        reconstruction = model(tensor)
+        errors = torch.mean((tensor - reconstruction) ** 2, dim=1)
+    return errors.numpy()
+
+
+def compute_autoencoder_normalized_scores(
+    model: Autoencoder, features: pd.DataFrame | np.ndarray, calibration: ScoringCalibration
+) -> np.ndarray:
+    """End-to-end scoring of new data using an ALREADY-CALIBRATED
+    `ScoringCalibration` (TASK 6.3) -- never refits the normalizer. Unlike
+    Isolation Forest's `app.ml.scoring.compute_normalized_scores`, no
+    `to_anomaly_score` sign flip is applied: `reconstruction_error` is already in
+    the pipeline's target orientation (higher = more anomalous).
+
+    Returns:
+        Normalized `[0,1]` anomaly scores, one per row of `features`.
+    """
+    errors = reconstruction_error(model, features)
+    return normalize_scores(errors, calibration.normalization)

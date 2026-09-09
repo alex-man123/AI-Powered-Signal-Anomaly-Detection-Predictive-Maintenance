@@ -57,15 +57,17 @@ new method added there is automatically accepted here too.
 (blueprint.md lines 39-41) trains exclusively on train's normal-labeled windows;
 metadata must never claim a model was trained on `"validation"`/`"test"`.
 
-NOT implemented here (explicitly out of this task's scope): actual Autoencoder
-(`.pt`) serialization -- `save_model_artifact`/`load_model_artifact` only know how
-to serialize/deserialize `model_type="isolation_forest"` artifacts (reusing TASK
-6.4's own `app.ml.inference.save_model`/`load_model`, themselves reusing TASK 6.2's
-joblib mechanism); calling either function with `model_type="autoencoder"` raises
-`ModelArtifactError` explicitly, since no Autoencoder persistence exists yet
-(TASK 7.3). The METADATA SCHEMA itself already fully supports `"autoencoder"` as a
-valid `model_type` value (tested) -- schema support and serialization support are
-deliberately two different, separately-verified things here.
+TASK 7.3 update: `save_model_artifact`/`load_model_artifact` now also support
+`model_type="autoencoder"`, dispatching to TASK 7.3's own
+`app.ml.inference.save_autoencoder`/`load_autoencoder` (a `torch.save`-based
+mechanism, distinct from Isolation Forest's joblib one -- see that module's
+docstring) -- this was the one extension point TASK 6.5 explicitly deferred
+("Autoencoder persistence is TASK 7.3's scope"), not a new architectural decision.
+The metadata schema itself required no change at all: it already fully supported
+`model_type="autoencoder"` (TASK 6.5's own tests already covered this), so this
+update is purely about which serializer `save_model_artifact`/`load_model_artifact`
+dispatch to based on `metadata.model_type` -- still exactly one metadata schema,
+never a second `AutoencoderMetadata`.
 """
 
 from __future__ import annotations
@@ -80,7 +82,9 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.ml.inference import load_autoencoder as _load_autoencoder_model
 from app.ml.inference import load_model as _load_isolation_forest_model
+from app.ml.inference import save_autoencoder as _save_autoencoder_model
 from app.ml.inference import save_model as _save_isolation_forest_model
 from app.ml.scoring import VALID_THRESHOLD_METHODS
 
@@ -225,34 +229,29 @@ def save_model_artifact(
     succeeds, so a sidecar never exists claiming a model that failed to save.
 
     Args:
-        model: the trained model object. Only `metadata.model_type ==
-            ModelType.ISOLATION_FOREST` is currently supported for actual
-            serialization (reuses TASK 6.4's `app.ml.inference.save_model`,
-            joblib) -- see module docstring.
+        model: the trained model object -- an `IsolationForest` if
+            `metadata.model_type == ModelType.ISOLATION_FOREST` (reuses TASK 6.4's
+            `app.ml.inference.save_model`, joblib), or an `Autoencoder` if
+            `metadata.model_type == ModelType.AUTOENCODER` (reuses TASK 7.3's
+            `app.ml.inference.save_autoencoder`, `torch.save`) -- see module
+            docstring.
         metadata: an already-validated `ModelArtifactMetadata` (Pydantic validates
             at construction time, so an invalid metadata object cannot exist to be
             passed here in the first place).
-        path: the model artifact path, e.g. `models/isolation_forest_v1.pkl`.
+        path: the model artifact path, e.g. `models/isolation_forest_v1.pkl` or
+            `models/autoencoder_v1.pt`.
 
     Returns:
         `(model_path, sidecar_path)`.
-
-    Raises:
-        ModelArtifactError: if `metadata.model_type` is not yet supported for
-            actual model serialization (currently only `isolation_forest`).
     """
     model_path = Path(path)
     sidecar_path = model_path.with_suffix(".json")
 
-    if metadata.model_type != ModelType.ISOLATION_FOREST:
-        raise ModelArtifactError(
-            f"save_model_artifact does not yet support serializing "
-            f"model_type={metadata.model_type.value!r} -- only 'isolation_forest' is "
-            "currently backed by a real serializer (Autoencoder persistence is TASK "
-            "7.3's scope). The metadata schema itself already accepts this model_type."
-        )
+    if metadata.model_type == ModelType.ISOLATION_FOREST:
+        _save_isolation_forest_model(model, model_path)
+    else:
+        _save_autoencoder_model(model, model_path)
 
-    _save_isolation_forest_model(model, model_path)
     _write_json_atomically(sidecar_path, metadata.model_dump_json(indent=2))
 
     return model_path, sidecar_path
@@ -271,10 +270,9 @@ def load_model_artifact(path: str | Path) -> tuple[object, ModelArtifactMetadata
 
     Raises:
         ModelArtifactError: if the model file is missing; if the sidecar is
-            missing (even when the model file itself exists); if the sidecar
+            missing (even when the model file itself exists); or if the sidecar
             fails to parse as JSON or fails `ModelArtifactMetadata` validation
-            (missing/malformed/inconsistent fields); or if
-            `metadata.model_type` is not yet supported for deserialization.
+            (missing/malformed/inconsistent fields).
     """
     model_path = Path(path)
     sidecar_path = model_path.with_suffix(".json")
@@ -297,14 +295,9 @@ def load_model_artifact(path: str | Path) -> tuple[object, ModelArtifactMetadata
             f"Invalid or incomplete metadata sidecar at {sidecar_path}: {exc}"
         ) from exc
 
-    if metadata.model_type != ModelType.ISOLATION_FOREST:
-        raise ModelArtifactError(
-            f"load_model_artifact does not yet support deserializing "
-            f"model_type={metadata.model_type.value!r} -- only 'isolation_forest' is "
-            "currently backed by a real deserializer (Autoencoder persistence is TASK "
-            "7.3's scope)."
-        )
-
-    model = _load_isolation_forest_model(model_path)
+    if metadata.model_type == ModelType.ISOLATION_FOREST:
+        model = _load_isolation_forest_model(model_path)
+    else:
+        model = _load_autoencoder_model(model_path)
 
     return model, metadata

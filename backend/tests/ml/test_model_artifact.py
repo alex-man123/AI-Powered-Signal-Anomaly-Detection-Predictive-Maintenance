@@ -315,26 +315,34 @@ def test_autoencoder_model_type_is_accepted_by_the_schema() -> None:
     assert metadata.model_type == ModelType.AUTOENCODER
 
 
-def test_save_model_artifact_rejects_autoencoder_model_type_explicitly(tmp_path: Path) -> None:
-    """Schema support != serialization support: the metadata schema accepts
-    'autoencoder', but no Autoencoder serializer exists yet (TASK 7.3) -- this
-    must fail loudly, not silently pretend to save a torch model via joblib."""
-    fake_model = object()
-    metadata = ModelArtifactMetadata(**_valid_metadata_kwargs(model_type=ModelType.AUTOENCODER))
+def test_save_and_load_model_artifact_supports_autoencoder_model_type(tmp_path: Path) -> None:
+    """TASK 7.3 update: schema support now equals serialization support for
+    Autoencoder too -- `app.ml.inference.save_autoencoder`/`load_autoencoder`
+    (torch.save-based) are wired in as the model_type="autoencoder" branch of
+    `save_model_artifact`/`load_model_artifact`. This test replaces this task's
+    (TASK 6.5's) original explicit-rejection test, which is no longer true
+    behavior now that TASK 7.3 has implemented that serializer -- the metadata
+    schema itself required no change at all."""
+    from app.ml.autoencoder import Autoencoder
 
-    with pytest.raises(ModelArtifactError, match="autoencoder"):
-        save_model_artifact(fake_model, metadata, tmp_path / "autoencoder_v1.pt")
+    model = Autoencoder(input_dim=3, hidden_dim=4, bottleneck_dim=2)
+    metadata = ModelArtifactMetadata(
+        **_valid_metadata_kwargs(
+            model_type=ModelType.AUTOENCODER,
+            feature_names=["a", "b", "c"],
+            feature_dimension=3,
+        )
+    )
 
+    model_path, sidecar_path = save_model_artifact(model, metadata, tmp_path / "autoencoder_v1.pt")
 
-def test_load_model_artifact_rejects_autoencoder_sidecar_explicitly(tmp_path: Path) -> None:
-    model_path = tmp_path / "autoencoder_v1.pt"
-    model_path.write_bytes(b"not a real torch checkpoint, just a placeholder for this test")
-    sidecar_path = tmp_path / "autoencoder_v1.json"
-    metadata = ModelArtifactMetadata(**_valid_metadata_kwargs(model_type=ModelType.AUTOENCODER))
-    sidecar_path.write_text(metadata.model_dump_json(), encoding="utf-8")
+    assert model_path.exists()
+    assert sidecar_path.exists()
 
-    with pytest.raises(ModelArtifactError, match="autoencoder"):
-        load_model_artifact(model_path)
+    reloaded_model, reloaded_metadata = load_model_artifact(model_path)
+
+    assert isinstance(reloaded_model, Autoencoder)
+    assert reloaded_metadata == metadata
 
 
 # --- Test 13 — random seed ---
