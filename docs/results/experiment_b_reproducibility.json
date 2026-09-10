@@ -1,0 +1,66 @@
+{
+  "experiment_id": "EXP-B-001",
+  "representation": "dsp_features",
+  "model": "isolation_forest",
+  "dataset_hash": "sha256:95aebdfe4d32407efe9a539531c872b59ddbfa441c3fb1832c986b96aa01fd57",
+  "split_manifest_hash": "sha256:72fc253af4f4c5df6447e82895694d8cd135578fc68733b17074266041d07f54",
+  "preprocessing_config": {
+    "window_size": 1024,
+    "overlap": 0.5,
+    "channel": 0,
+    "nperseg": 256,
+    "noverlap": 128
+  },
+  "feature_set": [
+    "mean",
+    "std",
+    "variance",
+    "rms",
+    "peak",
+    "peak_to_peak",
+    "skewness",
+    "kurtosis",
+    "crest_factor",
+    "dominant_frequency",
+    "spectral_centroid",
+    "spectral_bandwidth",
+    "spectral_energy",
+    "spectral_entropy",
+    "band_energy_10_100hz"
+  ],
+  "model_config": {
+    "bootstrap": false,
+    "contamination": "auto",
+    "max_features": 1.0,
+    "max_samples": "auto",
+    "n_estimators": 100,
+    "n_jobs": null,
+    "random_state": 42,
+    "verbose": 0,
+    "warm_start": false
+  },
+  "random_seed": 42,
+  "threshold_method": "percentile",
+  "threshold_value": 0.510328048907322,
+  "metrics": {
+    "precision": 0.6502463054187192,
+    "recall": 0.13552361396303902,
+    "f1": 0.22429906542056074,
+    "roc_auc": 0.638304331510442,
+    "pr_auc": 0.6073014263853652,
+    "confusion_matrix": [
+      [
+        903,
+        71
+      ],
+      [
+        842,
+        132
+      ]
+    ],
+    "fpr": 0.0728952772073922,
+    "fnr": 0.864476386036961,
+    "inference_time": 0.010789399999339366
+  },
+  "timestamp": "2026-09-10T09:09:41.556421+00:00"
+}
