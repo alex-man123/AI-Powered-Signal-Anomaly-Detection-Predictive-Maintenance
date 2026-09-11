@@ -20,13 +20,13 @@ export interface EmptyStateProps {
 
 function EmptyState({ title, message, size = "md", className }: EmptyStateProps) {
   if (size === "sm") {
-    return <p className={cn("text-sm text-muted-foreground", className)}>{message}</p>
+    return <p className={cn("animate-in text-sm fade-in text-muted-foreground duration-200", className)}>{message}</p>
   }
 
   return (
     <div
       className={cn(
-        "flex flex-col items-center gap-2 rounded-lg border border-dashed border-border px-6 py-10 text-center",
+        "flex animate-in flex-col items-center gap-2 rounded-lg border border-dashed border-border px-6 py-10 fade-in text-center duration-200",
         className,
       )}
     >

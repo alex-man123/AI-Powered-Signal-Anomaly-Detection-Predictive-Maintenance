@@ -28,7 +28,7 @@ export function AppShell() {
           type="button"
           aria-label="Close navigation"
           onClick={() => setMobileOpen(false)}
-          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+          className="fixed inset-0 z-40 animate-in fade-in bg-background/70 duration-200 lg:hidden"
         />
       )}
 

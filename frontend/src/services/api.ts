@@ -81,11 +81,29 @@ export interface PredictRequest {
   sampling_rate: number
 }
 
+// Mirrors backend `app.api.schemas.models.PredictionDirection` exactly.
+export type FeatureDeviationDirection = 'above' | 'below'
+
+// TASK 12.1 — one feature's real, computed deviation from the real
+// normal-validation baseline (`app.services.explanation_service.explain`).
+// `deviation_percent` is `null` when `baseline_value` is 0 (undefined ratio)
+// — never a fabricated/Infinity/NaN percentage.
+export interface FeatureExplanation {
+  feature: string
+  current_value: number
+  baseline_value: number
+  deviation: number
+  deviation_percent: number | null
+  direction: FeatureDeviationDirection
+  std_deviations: number
+}
+
 // POST /api/models/predict
 export interface PredictResponse {
   anomaly_score: number
   status: PredictionStatus
   explanation: string
+  explanations: FeatureExplanation[]
 }
 
 // POST /api/fft
@@ -198,6 +216,23 @@ export interface ExperimentDetailResponse {
   timestamp: string
 }
 
+// GET /api/experiments/pca-visualization — mirrors `PCAVisualizationResponse`
+// (TASK 12.2) exactly. One point per real MAFAULDA window, projected through
+// Experiment A's already-fitted PCA (TASK 9.1/9.2) — never recomputed here.
+export interface PCAPoint {
+  recording_id: string
+  label: SignalLabel
+  pc1: number
+  pc2: number
+  pc3: number
+}
+
+export interface PCAVisualizationResponse {
+  points: PCAPoint[]
+  explained_variance_ratio: [number, number, number]
+  total_components: number
+}
+
 const API_URL = import.meta.env.VITE_API_URL
 
 // FastAPI's own error contract for 4xx/5xx is `{"detail": "..."}` (TASK 10.7) —
@@ -296,4 +331,8 @@ export function getExperiments(): Promise<ExperimentResponse[]> {
 
 export function getExperiment(experimentId: string): Promise<ExperimentDetailResponse> {
   return apiGet<ExperimentDetailResponse>(`/api/experiments/${encodeURIComponent(experimentId)}`)
+}
+
+export function getPCAVisualization(): Promise<PCAVisualizationResponse> {
+  return apiGet<PCAVisualizationResponse>('/api/experiments/pca-visualization')
 }

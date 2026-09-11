@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { PCA3DPlot, type PCA3DPlotState } from '@/components/charts/PCA3DPlot'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,6 +12,7 @@ import { cn } from '@/lib/utils'
 import {
   getExperiment,
   getExperiments,
+  getPCAVisualization,
   type ExperimentDetailResponse,
   type ExperimentResponse,
 } from '@/services/api'
@@ -51,6 +53,33 @@ function useExperiments(): [Loadable<ExperimentResponse[]>, () => void] {
   }
 
   return [state, reload]
+}
+
+function usePCAVisualization(): PCA3DPlotState {
+  const [state, setState] = useState<PCA3DPlotState>({ status: 'loading' })
+
+  useEffect(() => {
+    let cancelled = false
+
+    getPCAVisualization()
+      .then((data) => {
+        if (!cancelled) setState({ status: 'success', data })
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setState({
+            status: 'error',
+            message: error instanceof Error ? error.message : 'Failed to load PCA visualization',
+          })
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  return state
 }
 
 // Real, currently-known representation values (`raw_pca`, `dsp_features`) —
@@ -255,6 +284,7 @@ function EmptyCell() {
 
 export default function Experiments() {
   const [state, reload] = useExperiments()
+  const pcaState = usePCAVisualization()
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [detailsById, setDetailsById] = useState<Record<string, Loadable<ExperimentDetailResponse>>>({})
 
@@ -400,6 +430,18 @@ export default function Experiments() {
           )}
         </div>
       )}
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>PCA 3D Feature Space</CardTitle>
+          <CardDescription>
+            Real MAFAULDA windows projected through Experiment A's fitted PCA (PC1/PC2/PC3), colored by real class.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PCA3DPlot state={pcaState} />
+        </CardContent>
+      </Card>
     </div>
   )
 }

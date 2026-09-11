@@ -21,7 +21,7 @@ function LoadingState({ message = "Loading…", size = "md", className }: Loadin
   const sizes = SIZE_CLASSES[size]
 
   return (
-    <p className={cn("flex items-center gap-2 text-muted-foreground", sizes.text, className)}>
+    <p className={cn("flex animate-in items-center gap-2 fade-in duration-200 text-muted-foreground", sizes.text, className)}>
       <Loader className={cn("animate-spin", sizes.icon)} />
       {message}
     </p>

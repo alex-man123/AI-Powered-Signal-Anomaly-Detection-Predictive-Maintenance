@@ -8,6 +8,8 @@ build/
 # Data (raw data must never be committed)
 data/raw/*
 !data/raw/.gitkeep
+data/external/*
+!data/external/.gitkeep
 
 # Models
 models/*.pt

@@ -26,7 +26,7 @@ function ErrorState({ message, onRetry, retryLabel = "Retry", size = "md", class
   const sizes = SIZE_CLASSES[size]
 
   return (
-    <div className={cn("flex flex-col items-start gap-3", className)}>
+    <div className={cn("flex animate-in flex-col items-start gap-3 fade-in duration-200", className)}>
       <p className={cn("flex items-center gap-2 text-anomaly", sizes.text)}>
         <CircleAlert className={cn("shrink-0", sizes.icon)} />
         {message}

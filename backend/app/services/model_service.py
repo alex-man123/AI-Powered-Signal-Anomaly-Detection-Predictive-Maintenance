@@ -65,10 +65,12 @@ EXPLANATION: grounded in the real feature values `extract_features` computes
 for the given signal, compared against a real per-feature mean/std baseline
 computed from the SAME real normal-labeled validation windows used for
 calibration (cached alongside it) -- never a generic string, never a feature
-declared "abnormal" merely for having a large value. A feature is only called
-out if it is >= `EXPLANATION_Z_SCORE_THRESHOLD` standard deviations from that
-real baseline (both directions -- "above" and "below" are both reported), a
-disclosed, simple statistical rule, not a magnitude guess.
+declared "abnormal" merely for having a large value. TASK 12.1 moved the
+actual significance/deviation calculation into
+`app.services.explanation_service` (this module now calls into it for both
+the free-text `explanation` string and the structured `explanations` list --
+one computation, two presentations, never two competing baseline/threshold
+rules).
 """
 
 from __future__ import annotations
@@ -81,6 +83,7 @@ from typing import Any
 import pandas as pd
 
 from app.api.schemas.models import (
+    FeatureExplanation,
     ModelArtifactInfo,
     ModelMetrics,
     ModelResponse,
@@ -101,7 +104,8 @@ from app.ml.inference import predict as isolation_forest_raw_predict
 from app.ml.inference import reconstruction_error as autoencoder_reconstruction_error
 from app.ml.model_artifact import ModelArtifactError, ModelType, load_model_artifact
 from app.ml.scoring import ScoringCalibration, calibrate, normalize_scores, to_anomaly_score
-from app.models.signal import SignalLabel
+from app.services import explanation_service
+from app.services.explanation_service import FeatureDeviation
 from app.signal_processing.windowing import Window, create_windows
 from scripts.run_experiment_a import (
     CHANNEL,
@@ -121,10 +125,6 @@ AUTOENCODER_EXPERIMENT_ID = "EXP-C-001"
 
 # See module docstring's "STATUS THRESHOLDS" section.
 WARNING_THRESHOLD_RATIO = 0.5
-
-# See module docstring's "EXPLANATION" section.
-EXPLANATION_Z_SCORE_THRESHOLD = 2.0
-EXPLANATION_MAX_FEATURES = 3
 
 
 class ModelServiceError(ValueError):
@@ -335,17 +335,14 @@ def _autoencoder_calibration() -> ScoringCalibration:
 
 def _normal_feature_baseline() -> dict[str, tuple[float, float]]:
     """Real per-feature (mean, std) computed from the real normal-labeled
-    validation windows -- used only to phrase `_build_explanation`'s
-    comparisons against real, already-observed normal behavior."""
+    validation windows -- see TASK 12.1's `app.services.explanation_service`
+    for the actual calculation (moved there, not duplicated); this stays the
+    single process-lifetime cache both the free-text `explanation` and the
+    structured `explanations` share."""
     global _NORMAL_FEATURE_BASELINE
     if _NORMAL_FEATURE_BASELINE is None:
         features, labels = _validation_features_and_labels()
-        normal_mask = [label == SignalLabel.NORMAL.value for label in labels]
-        normal_features = features[normal_mask]
-        _NORMAL_FEATURE_BASELINE = {
-            column: (float(normal_features[column].mean()), float(normal_features[column].std()))
-            for column in normal_features.columns
-        }
+        _NORMAL_FEATURE_BASELINE = explanation_service.compute_feature_baseline(features, labels)
     return _NORMAL_FEATURE_BASELINE
 
 
@@ -357,39 +354,35 @@ def _status_for_score(score: float, threshold: float) -> PredictionStatus:
     return PredictionStatus.NORMAL
 
 
-def _build_explanation(features: dict[str, float], baseline: dict[str, tuple[float, float]]) -> str:
-    deviations: list[tuple[str, float, float]] = []
-    for name, value in features.items():
-        if name not in baseline:
-            continue
-        mean, std = baseline[name]
-        if std <= 0:
-            continue
-        z_score = (value - mean) / std
-        if abs(z_score) >= EXPLANATION_Z_SCORE_THRESHOLD:
-            deviations.append((name, value, z_score))
-
+def _build_explanation(deviations: list[FeatureDeviation]) -> str:
+    """The free-text reading of the SAME real deviations `run_prediction`
+    also returns structured (TASK 12.1) -- one computation, two
+    presentations, never two competing baseline/significance calculations."""
     if not deviations:
         return (
             "No individual feature deviates by more than "
-            f"{EXPLANATION_Z_SCORE_THRESHOLD:.0f} standard deviations from the real normal-"
+            f"{explanation_service.SIGNIFICANT_DEVIATION_Z_SCORE:.0f} standard deviations from the real normal-"
             "validation baseline; the anomaly score reflects the model's overall "
             "multivariate assessment rather than any single feature."
         )
 
-    deviations.sort(key=lambda item: abs(item[2]), reverse=True)
-    parts = [
-        f"{name}={value:.4g} ({abs(z_score):.1f} std {'above' if z_score > 0 else 'below'} "
-        "the real normal-validation baseline)"
-        for name, value, z_score in deviations[:EXPLANATION_MAX_FEATURES]
-    ]
+    parts = []
+    for item in deviations:
+        if item.deviation_percent is None:
+            parts.append(f"{item.feature}={item.current_value:.4g} ({item.direction} a zero real normal-validation baseline)")
+        else:
+            parts.append(
+                f"{item.feature}={item.current_value:.4g} ({item.deviation_percent:+.1f}% {item.direction} "
+                "the real normal-validation baseline)"
+            )
     return "Notable feature deviations from the real normal-validation baseline: " + "; ".join(parts) + "."
 
 
 def run_prediction(request: PredictRequest) -> PredictResponse:
     """`POST /api/models/predict`: real feature extraction -> real scaling
     (Isolation Forest) -> real model inference -> real scoring/normalization ->
-    threshold-derived status -> real-feature-based explanation."""
+    threshold-derived status -> real-feature-based explanation (TASK 10.5
+    free-text + TASK 12.1 structured deviations, from the same computation)."""
     features = extract_features(
         request.signal, request.sampling_rate, nperseg=NPERSEG, noverlap=NOVERLAP
     )
@@ -407,6 +400,23 @@ def run_prediction(request: PredictRequest) -> PredictResponse:
     score = float(normalized_scores[0])
 
     status = _status_for_score(score, calibration.threshold)
-    explanation = _build_explanation(features, _normal_feature_baseline())
+    deviations = explanation_service.explain(features, _normal_feature_baseline())
+    explanation = _build_explanation(deviations)
 
-    return PredictResponse(anomaly_score=score, status=status, explanation=explanation)
+    return PredictResponse(
+        anomaly_score=score,
+        status=status,
+        explanation=explanation,
+        explanations=[
+            FeatureExplanation(
+                feature=item.feature,
+                current_value=item.current_value,
+                baseline_value=item.baseline_value,
+                deviation=item.deviation,
+                deviation_percent=item.deviation_percent,
+                direction=item.direction,
+                std_deviations=item.std_deviations,
+            )
+            for item in deviations
+        ],
+    )

@@ -32,6 +32,7 @@ EXPECTED_PHASE_10_ENDPOINTS = {
     ("get", "/api/models/sample-signal"),
     ("get", "/api/experiments"),
     ("get", "/api/experiments/{experiment_id}"),
+    ("get", "/api/experiments/pca-visualization"),
 }
 
 
@@ -172,7 +173,7 @@ def test_predict_response_model_matches_the_real_schema_fields() -> None:
     spec = _spec()
     schema = spec["components"]["schemas"]["PredictResponse"]
 
-    assert set(schema["properties"].keys()) == {"anomaly_score", "status", "explanation"}
+    assert set(schema["properties"].keys()) == {"anomaly_score", "status", "explanation", "explanations"}
     assert schema["properties"]["anomaly_score"]["minimum"] == 0.0
     assert schema["properties"]["anomaly_score"]["maximum"] == 1.0
 
@@ -309,6 +310,7 @@ def test_endpoints_are_grouped_with_the_expected_tags() -> None:
         "/api/models/predict": "Models",
         "/api/experiments": "Experiments",
         "/api/experiments/{experiment_id}": "Experiments",
+        "/api/experiments/pca-visualization": "Experiments",
     }
 
     for path, expected_tag in expected_tags.items():

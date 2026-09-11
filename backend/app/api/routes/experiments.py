@@ -8,6 +8,13 @@ TASK 10.8: added `summary`/`description` + explicit `404` documentation for
 `GET /experiments/{id}` (real, reachable -- e.g. the disclosed, now-superseded
 `EXP-A-001` id). `tags=["Experiments"]` is applied once at `include_router()`
 time in `app.main`.
+
+TASK 12.2 -- added `GET /experiments/pca-visualization` (real per-window PC1/
+PC2/PC3 + real class label, `app.services.pca_service`, itself reusing TASK
+9.1/9.2's already-fitted PCA -- see that module's own docstring). Declared
+BEFORE `/experiments/{experiment_id}` so FastAPI's first-match routing
+resolves this literal path instead of treating "pca-visualization" as an
+`{experiment_id}` path parameter.
 """
 
 from __future__ import annotations
@@ -16,8 +23,10 @@ from fastapi import APIRouter, HTTPException
 
 from app.api.schemas.errors import ErrorResponse
 from app.api.schemas.experiments import ExperimentDetailResponse, ExperimentResponse
-from app.services import experiment_service
+from app.api.schemas.pca_visualization import PCAVisualizationResponse
+from app.services import experiment_service, pca_service
 from app.services.experiment_service import ExperimentNotFoundError
+from app.services.pca_service import PCAVisualizationError
 
 router = APIRouter()
 
@@ -31,6 +40,32 @@ router = APIRouter()
 )
 def get_experiments() -> list[ExperimentResponse]:
     return experiment_service.list_experiments()
+
+
+@router.get(
+    "/experiments/pca-visualization",
+    response_model=PCAVisualizationResponse,
+    summary="Get real per-window PCA coordinates for 3D visualization",
+    description="Real PC1/PC2/PC3 coordinates and real class label per real window, produced by "
+    "projecting real MAFAULDA windows through Experiment A's already-fitted PCA (TASK 9.1/9.2) -- "
+    "for dimensionality-reduction visualization only, never a claim of guaranteed class separability.",
+    responses={
+        500: {
+            "model": ErrorResponse,
+            "description": "The real, persisted Experiment A PCA artifact is unavailable.",
+        }
+    },
+)
+def get_pca_visualization() -> PCAVisualizationResponse:
+    try:
+        points, explained_variance_ratio, total_components = pca_service.get_pca_visualization()
+    except PCAVisualizationError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return PCAVisualizationResponse(
+        points=points,
+        explained_variance_ratio=explained_variance_ratio,
+        total_components=total_components,
+    )
 
 
 @router.get(

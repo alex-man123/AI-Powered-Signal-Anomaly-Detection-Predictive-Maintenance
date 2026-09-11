@@ -103,10 +103,37 @@ class PredictRequest(BaseModel):
     sampling_rate: float = Field(gt=0, strict=True)
 
 
+class PredictionDirection(str, Enum):
+    ABOVE = "above"
+    BELOW = "below"
+
+
+class FeatureExplanation(BaseModel):
+    """TASK 12.1 -- one feature's real, computed deviation from the real
+    normal-validation baseline (`app.services.explanation_service.explain`).
+    `deviation_percent` is `null` when `baseline_value == 0` (undefined ratio)
+    -- never a fabricated/Infinity/NaN percentage; `deviation` (the real,
+    signed absolute difference) is always present."""
+
+    feature: str = Field(min_length=1)
+    current_value: float = Field(strict=True)
+    baseline_value: float = Field(strict=True)
+    deviation: float = Field(strict=True)
+    deviation_percent: float | None = Field(default=None, strict=True)
+    direction: PredictionDirection
+    std_deviations: float = Field(ge=0, strict=True)
+
+
 class PredictResponse(BaseModel):
     anomaly_score: float = Field(ge=0, le=1, strict=True)
     status: PredictionStatus
     explanation: str = Field(min_length=1)
+    explanations: list[FeatureExplanation] = Field(
+        default_factory=list,
+        description="Real per-feature deviations from the real normal-validation baseline "
+        "that cross the significance threshold — empty when none do (e.g. a normal signal), "
+        "never padded with invented entries.",
+    )
 
 
 class SampleSignalResponse(BaseModel):

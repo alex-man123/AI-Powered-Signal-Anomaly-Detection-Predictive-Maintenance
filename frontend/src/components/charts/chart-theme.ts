@@ -60,6 +60,7 @@ export interface ChartColors {
   normal: string
   warning: string
   anomaly: string
+  categorical: [string, string, string, string]
 }
 
 export function getChartColors(): ChartColors {
@@ -72,6 +73,15 @@ export function getChartColors(): ChartColors {
     normal: cssVar('--color-normal'),
     warning: cssVar('--color-warning'),
     anomaly: cssVar('--color-anomaly'),
+    // The app's own already-defined `--chart-1`..`--chart-4` design tokens
+    // (index.css), in their existing fixed order — a real, pre-existing
+    // 4-way categorical set, not a new palette invented for one chart.
+    categorical: [
+      cssVar('--color-chart-1'),
+      cssVar('--color-chart-2'),
+      cssVar('--color-chart-3'),
+      cssVar('--color-chart-4'),
+    ],
   }
 }
 

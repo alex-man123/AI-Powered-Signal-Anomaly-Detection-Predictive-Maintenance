@@ -1,3 +1,4 @@
+import { ExplanationList } from '@/components/anomaly/ExplanationList'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -41,73 +42,6 @@ export type AnomalyPanelState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | { status: 'success'; data: AnomalyPanelData }
-
-// --- Feature indicators, parsed from the backend's own real explanation ---
-//
-// `POST /api/models/predict` does not return raw per-feature values — only a
-// prose `explanation` string, already grounded in real computed features and
-// a real per-feature baseline (see `model_service._build_explanation`). This
-// parses that real sentence for a nicer per-feature layout; it never decides
-// which features are "notable" or invents a threshold — that judgment (a
-// >= 2 std-deviation cutoff) is already made by the backend. If the sentence
-// doesn't match the expected shape (e.g. a future backend wording change),
-// this falls back to rendering it as plain text rather than guessing.
-interface FeatureDeviation {
-  name: string
-  value: string
-  stdDeviations: number
-  direction: 'above' | 'below'
-}
-
-type ParsedExplanation =
-  | { kind: 'text'; text: string }
-  | { kind: 'deviations'; items: FeatureDeviation[] }
-
-const DEVIATION_PREFIX = 'Notable feature deviations from the real normal-validation baseline: '
-const DEVIATION_ITEM_PATTERN =
-  /^(\w+)=(\S+) \((\d+(?:\.\d+)?) std (above|below) the real normal-validation baseline\)$/
-
-function parseExplanation(explanation: string): ParsedExplanation {
-  if (!explanation.startsWith(DEVIATION_PREFIX)) {
-    return { kind: 'text', text: explanation }
-  }
-
-  const body = explanation.slice(DEVIATION_PREFIX.length).replace(/\.$/, '')
-  const items: FeatureDeviation[] = []
-
-  for (const part of body.split('; ')) {
-    const match = DEVIATION_ITEM_PATTERN.exec(part)
-    if (!match) {
-      return { kind: 'text', text: explanation }
-    }
-    const [, name, value, std, direction] = match
-    items.push({ name, value, stdDeviations: Number(std), direction: direction as 'above' | 'below' })
-  }
-
-  return items.length > 0 ? { kind: 'deviations', items } : { kind: 'text', text: explanation }
-}
-
-function FeatureIndicators({ explanation }: { explanation: string }) {
-  const parsed = parseExplanation(explanation)
-
-  if (parsed.kind === 'text') {
-    return <p className="text-sm text-muted-foreground">{parsed.text}</p>
-  }
-
-  return (
-    <div className="grid gap-3 sm:grid-cols-3">
-      {parsed.items.map((item) => (
-        <div key={item.name} className="rounded-lg bg-muted/50 p-3">
-          <p className="text-xs text-muted-foreground capitalize">{item.name.replaceAll('_', ' ')}</p>
-          <p className="mt-0.5 font-mono text-sm">{item.value}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {item.stdDeviations.toFixed(1)} std {item.direction} the learned normal baseline
-          </p>
-        </div>
-      ))}
-    </div>
-  )
-}
 
 function ScoreMeter({ score, threshold, status }: { score: number; threshold: number; status: PredictionStatus }) {
   const scorePercent = Math.min(100, Math.max(0, score * 100))
@@ -183,8 +117,14 @@ export function AnomalyPanel({ state }: { state: AnomalyPanelState }) {
             <p className="text-sm">{STATUS_INTERPRETATION[state.data.prediction.status]}</p>
 
             <div>
-              <p className="mb-2 text-xs font-medium text-muted-foreground">Signal indicators</p>
-              <FeatureIndicators explanation={state.data.prediction.explanation} />
+              <p className="mb-2 text-xs font-medium text-muted-foreground">Why is this signal unusual?</p>
+              <ExplanationList
+                state={
+                  state.data.prediction.explanations.length === 0
+                    ? { status: 'empty' }
+                    : { status: 'success', data: state.data.prediction.explanations }
+                }
+              />
             </div>
           </div>
         )}
