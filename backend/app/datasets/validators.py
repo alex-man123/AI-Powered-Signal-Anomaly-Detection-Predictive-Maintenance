@@ -23,6 +23,12 @@ Expected values all come from the local audit, never from external MAFAULDA docs
   consistency explicitly, not row-count consistency in so many words — the row-count
   fact is reproducible directly from that already-committed script + the dataset, not
   invented here.
+- Missing values: 0. Source: docs/dataset_audit/data_quality_report.md §3 -- the
+  TASK 1.5.8 full-dataset run of `backend/scripts/run_data_quality_audit.py`
+  (`app.datasets.data_quality.analyze_file_quality`'s own real per-file
+  `missing_values`/`missing_percentage` computation, via `df.isna().sum().sum()`)
+  confirms `len(missing_value_files) == 0` across all 880 real files (250,000 rows
+  × 8 columns each) -- not a value assumed absent, an exhaustively checked one.
 
 No tolerance is defined anywhere in blueprint.md/backlog.md/the audit for sampling rate
 or channel count — and none is needed, since their real-data variance is exactly zero.
@@ -43,6 +49,7 @@ SAMPLING_RATE_HZ = 50000.0
 EXPECTED_SAMPLING_RATE_HZ = SAMPLING_RATE_HZ
 EXPECTED_CHANNEL_COUNT = NUM_CHANNELS
 MINIMUM_SIGNAL_LENGTH = 250_000
+MISSING_VALUE_COUNT = 0
 
 
 class DatasetValidationError(ValueError):

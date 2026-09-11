@@ -71,11 +71,13 @@ def test_dataset_detail_response_accepts_a_valid_payload() -> None:
         channels=[0, 1, 2, 3, 4, 5, 6, 7],
         samples_per_signal=250000,
         labels=["normal", "imbalance"],
+        missing_values=0,
     )
 
     assert response.sampling_rate == 50000.0
     assert response.samples_per_signal == 250000
     assert response.labels == [SignalLabel.NORMAL, SignalLabel.IMBALANCE]
+    assert response.missing_values == 0
 
 
 def test_dataset_detail_response_rejects_sampling_rate_as_string() -> None:

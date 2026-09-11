@@ -26,6 +26,14 @@ already defined above) and "how many raw time-domain samples per recording"
 `app.datasets.validators.MINIMUM_SIGNAL_LENGTH`). Rather than silently picking
 one reading, `samples_per_signal` was added to `DatasetDetailResponse` so both
 real, audit-traceable facts are exposed.
+
+Updated by TASK 11.8 (minimal, justified extension -- not a redesign): the
+frontend Dataset page's AC1 also asks for "missing values", a fact this
+service previously computed nowhere -- `app.datasets.validators.
+MISSING_VALUE_COUNT` (the real, TASK 1.5.8 full-dataset-audit-confirmed count,
+0 across all 880 real files) is now exposed as `missing_values`, the same way
+`sampling_rate`/`channels`/`samples_per_signal` already expose their own
+audit-confirmed constants -- not a new kind of field, the same pattern.
 """
 
 from __future__ import annotations
@@ -65,3 +73,4 @@ class DatasetDetailResponse(BaseModel):
     channels: list[ChannelIndex] = Field(min_length=1)
     samples_per_signal: int = Field(gt=0, strict=True)
     labels: list[SignalLabel] = Field(min_length=1)
+    missing_values: int = Field(ge=0, strict=True)

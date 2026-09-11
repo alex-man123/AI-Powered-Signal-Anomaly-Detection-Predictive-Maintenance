@@ -50,7 +50,7 @@ from pathlib import Path
 from typing import Any
 
 from app.datasets.mafaulda_parser import UNKNOWN, parse_recording_state
-from app.datasets.validators import MINIMUM_SIGNAL_LENGTH, NUM_CHANNELS, SAMPLING_RATE_HZ
+from app.datasets.validators import MINIMUM_SIGNAL_LENGTH, MISSING_VALUE_COUNT, NUM_CHANNELS, SAMPLING_RATE_HZ
 from app.models.signal import SignalLabel
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -133,4 +133,5 @@ def get_dataset_detail(dataset_id: int, *, manifest_path: Path = DEFAULT_MANIFES
         "channels": list(range(NUM_CHANNELS)),
         "samples_per_signal": MINIMUM_SIGNAL_LENGTH,
         "labels": _distinct_labels(splits),
+        "missing_values": MISSING_VALUE_COUNT,
     }

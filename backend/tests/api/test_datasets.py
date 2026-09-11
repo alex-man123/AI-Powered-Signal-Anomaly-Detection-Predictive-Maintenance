@@ -15,7 +15,7 @@ import json
 
 from fastapi.testclient import TestClient
 
-from app.datasets.validators import MINIMUM_SIGNAL_LENGTH, NUM_CHANNELS, SAMPLING_RATE_HZ
+from app.datasets.validators import MINIMUM_SIGNAL_LENGTH, MISSING_VALUE_COUNT, NUM_CHANNELS, SAMPLING_RATE_HZ
 from app.main import app
 from app.services.dataset_service import DEFAULT_MANIFEST_PATH, MAFAULDA_DATASET_ID
 
@@ -93,6 +93,16 @@ def test_get_dataset_detail_signal_count_matches_the_real_split_manifest_indepen
     assert response.json()["signal_count"] == _real_manifest_signal_count()
 
 
+def test_get_dataset_detail_missing_values_matches_the_real_audit_constant() -> None:
+    """AC1 (TASK 11.8): missing_values must come from the real, TASK 1.5.8
+    full-dataset-audit-confirmed constant, not a placeholder."""
+    response = client.get(f"/api/datasets/{MAFAULDA_DATASET_ID}")
+    body = response.json()
+
+    assert body["missing_values"] == MISSING_VALUE_COUNT
+    assert body["missing_values"] == 0
+
+
 def test_get_dataset_detail_labels_are_real_known_signal_labels() -> None:
     response = client.get(f"/api/datasets/{MAFAULDA_DATASET_ID}")
     body = response.json()
@@ -113,6 +123,7 @@ def test_get_dataset_detail_response_matches_the_full_pydantic_schema_shape() ->
         "channels",
         "samples_per_signal",
         "labels",
+        "missing_values",
     }
 
 
