@@ -164,6 +164,52 @@ def test_get_model_performance_metrics_are_not_static_placeholder_values() -> No
 
 
 # ---------------------------------------------------------------------------
+# GET /api/models/sample-signal
+# ---------------------------------------------------------------------------
+
+
+def test_get_sample_signal_returns_200() -> None:
+    response = client.get("/api/models/sample-signal")
+
+    assert response.status_code == 200
+
+
+def test_get_sample_signal_matches_the_real_first_validation_window() -> None:
+    """Cross-checks against `model_service._validation_windows_and_labels`
+    called independently here -- proves the route serves the real, already-
+    windowed validation recording, not invented/random data."""
+    from app.services.model_service import CHANNEL, _validation_windows_and_labels
+
+    response = client.get("/api/models/sample-signal")
+    body = response.json()
+
+    windows, labels = _validation_windows_and_labels()
+    real_window = windows[0]
+
+    assert body["recording_id"] == real_window.recording_id
+    assert body["label"] == labels[0]
+    assert body["channel"] == CHANNEL
+    assert body["signal"] == pytest.approx(list(real_window.values))
+
+
+def test_get_sample_signal_can_be_fed_directly_into_predict() -> None:
+    """The whole point of this endpoint: its output is a valid `predict` input."""
+    sample = client.get("/api/models/sample-signal").json()
+
+    response = client.post(
+        "/api/models/predict",
+        json={
+            "model_type": "isolation_forest",
+            "signal": sample["signal"],
+            "sampling_rate": sample["sampling_rate"],
+        },
+    )
+
+    assert response.status_code == 200
+    assert "anomaly_score" in response.json()
+
+
+# ---------------------------------------------------------------------------
 # POST /api/models/predict
 # ---------------------------------------------------------------------------
 

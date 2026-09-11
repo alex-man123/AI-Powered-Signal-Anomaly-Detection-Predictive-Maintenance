@@ -276,6 +276,23 @@ def _validation_windows_and_labels() -> tuple[list[Window], list[str]]:
     return windows, labels
 
 
+def get_sample_signal() -> dict[str, Any]:
+    """TASK 11.2 (Dashboard) -- returns the first real, already-windowed
+    validation recording (same real windows `_validation_windows_and_labels`
+    already computes for calibration -- no second CSV-reading code path, no
+    synthetic/random data). Lets a caller run `POST /api/models/predict`
+    against a genuine signal without needing its own dataset file access."""
+    windows, labels = _validation_windows_and_labels()
+    window = windows[0]
+    return {
+        "recording_id": window.recording_id,
+        "label": labels[0],
+        "channel": CHANNEL,
+        "sampling_rate": SAMPLING_RATE_HZ,
+        "signal": list(window.values),
+    }
+
+
 def _validation_features_and_labels() -> tuple[pd.DataFrame, list[str]]:
     global _VALIDATION_FEATURES, _VALIDATION_LABELS
     if _VALIDATION_FEATURES is None:

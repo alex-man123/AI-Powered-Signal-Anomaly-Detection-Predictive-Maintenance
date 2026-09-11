@@ -40,6 +40,7 @@ from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.ml.model_artifact import ModelType, ScoreDirection
+from app.models.signal import SignalLabel
 
 
 class ModelMetrics(BaseModel):
@@ -106,3 +107,18 @@ class PredictResponse(BaseModel):
     anomaly_score: float = Field(ge=0, le=1, strict=True)
     status: PredictionStatus
     explanation: str = Field(min_length=1)
+
+
+class SampleSignalResponse(BaseModel):
+    """`GET /api/models/sample-signal` -- one real, already-windowed recording
+    from the same real validation set TASK 10.5's own threshold calibration
+    uses (`model_service._validation_windows_and_labels`), never synthetic/
+    random data. Lets a client (e.g. the frontend Dashboard) demonstrate
+    `POST /api/models/predict` against a genuine signal without needing its
+    own dataset file access."""
+
+    recording_id: str = Field(min_length=1)
+    label: SignalLabel
+    channel: int = Field(ge=0, strict=True)
+    sampling_rate: float = Field(gt=0, strict=True)
+    signal: list[float] = Field(min_length=1)

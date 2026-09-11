@@ -29,6 +29,7 @@ EXPECTED_PHASE_10_ENDPOINTS = {
     ("get", "/api/models"),
     ("get", "/api/models/{model_id}/performance"),
     ("post", "/api/models/predict"),
+    ("get", "/api/models/sample-signal"),
     ("get", "/api/experiments"),
     ("get", "/api/experiments/{experiment_id}"),
 }

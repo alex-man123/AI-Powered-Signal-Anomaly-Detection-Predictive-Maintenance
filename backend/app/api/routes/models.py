@@ -35,11 +35,25 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 
 from app.api.schemas.errors import ErrorResponse
-from app.api.schemas.models import ModelResponse, PredictRequest, PredictResponse
+from app.api.schemas.models import ModelResponse, PredictRequest, PredictResponse, SampleSignalResponse
 from app.services import model_service
 from app.services.model_service import ModelNotFoundError
 
 router = APIRouter()
+
+
+@router.get(
+    "/models/sample-signal",
+    response_model=SampleSignalResponse,
+    summary="Get a real sample signal to run through prediction",
+    description="One real, already-windowed recording from the same real validation set "
+    "TASK 10.5's own threshold calibration uses -- never synthetic/random data. "
+    "`POST /api/models/predict` requires a real signal from its caller; this endpoint is "
+    "what lets a client (e.g. the frontend Dashboard) demonstrate that route without "
+    "needing its own dataset file access.",
+)
+def get_sample_signal() -> SampleSignalResponse:
+    return SampleSignalResponse(**model_service.get_sample_signal())
 
 
 @router.get(
