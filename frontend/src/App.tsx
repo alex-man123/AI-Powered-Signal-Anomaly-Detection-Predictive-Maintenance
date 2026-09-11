@@ -1,35 +1,32 @@
-import Plot from 'react-plotly.js'
+import { Navigate, Route, Routes } from 'react-router'
 
-import { BackendStatus } from '@/components/BackendStatus'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AppShell } from '@/layouts/AppShell'
+import AnomalyDetection from '@/pages/AnomalyDetection'
+import Dashboard from '@/pages/Dashboard'
+import Dataset from '@/pages/Dataset'
+import DSPLab from '@/pages/DSPLab'
+import Experiments from '@/pages/Experiments'
+import Models from '@/pages/Models'
+import NotFound from '@/pages/NotFound'
+import SignalAnalysis from '@/pages/SignalAnalysis'
+import Signals from '@/pages/Signals'
 
-// TASK 1.4/1.5/1.6 setup smoke test only — verifies Tailwind, shadcn/ui, Plotly, the
-// design tokens, and backend connectivity are wired correctly. Real dashboard UI belongs
-// to later phases.
 function App() {
   return (
-    <div className="bg-background flex min-h-screen items-center justify-center p-8">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Frontend setup smoke test</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col items-start gap-4">
-          <Badge className="font-mono">TASK 1.6</Badge>
-          <Button>shadcn Button</Button>
-          <div className="font-mono flex gap-4 text-sm">
-            <span className="text-normal">NORMAL</span>
-            <span className="text-warning">WARNING</span>
-            <span className="text-anomaly">ANOMALY</span>
-          </div>
-          <BackendStatus />
-          <div className="h-0 w-0 overflow-hidden" aria-hidden="true">
-            <Plot data={[]} layout={{}} />
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <Routes>
+      <Route element={<AppShell />}>
+        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="signals" element={<Signals />} />
+        <Route path="signal-analysis" element={<SignalAnalysis />} />
+        <Route path="dsp-lab" element={<DSPLab />} />
+        <Route path="anomaly-detection" element={<AnomalyDetection />} />
+        <Route path="models" element={<Models />} />
+        <Route path="experiments" element={<Experiments />} />
+        <Route path="dataset" element={<Dataset />} />
+        <Route path="*" element={<NotFound />} />
+      </Route>
+    </Routes>
   )
 }
 
