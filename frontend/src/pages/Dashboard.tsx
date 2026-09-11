@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 
+import { SampleClassSelector } from '@/components/SampleClassSelector'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { LoadingState } from '@/components/ui/LoadingState'
+import { useActiveSampleClass } from '@/context/ActiveSampleClassContext'
 import { MODEL_LABELS, STATUS_BADGE_CLASS } from '@/lib/model-display'
 import {
   getDatasets,
@@ -15,6 +17,7 @@ import {
   type ModelType,
   type PredictResponse,
   type SampleSignalResponse,
+  type SignalLabel,
 } from '@/services/api'
 
 type DashboardData = {
@@ -29,7 +32,7 @@ type State =
   | { state: 'error'; message: string }
   | { state: 'success'; data: DashboardData }
 
-function useDashboardData(): [State, () => void] {
+function useDashboardData(sampleClass: SignalLabel | null): [State, () => void] {
   const [state, setState] = useState<State>({ state: 'loading' })
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -37,7 +40,11 @@ function useDashboardData(): [State, () => void] {
     let cancelled = false
 
     async function load() {
-      const [models, datasets, sample] = await Promise.all([getModels(), getDatasets(), getSampleSignal()])
+      const [models, datasets, sample] = await Promise.all([
+        getModels(),
+        getDatasets(),
+        getSampleSignal(sampleClass ?? undefined),
+      ])
 
       const predictionEntries = await Promise.all(
         models.map(
@@ -79,7 +86,7 @@ function useDashboardData(): [State, () => void] {
     return () => {
       cancelled = true
     }
-  }, [reloadToken])
+  }, [reloadToken, sampleClass])
 
   function reload() {
     // Reset to loading from the event that triggered the refetch, not from
@@ -92,7 +99,8 @@ function useDashboardData(): [State, () => void] {
 }
 
 export default function Dashboard() {
-  const [state, reload] = useDashboardData()
+  const { activeSampleClass } = useActiveSampleClass()
+  const [state, reload] = useDashboardData(activeSampleClass)
 
   return (
     <div>
@@ -100,6 +108,8 @@ export default function Dashboard() {
       <p className="mt-1 text-sm text-muted-foreground">
         Overview of the trained models and the dataset they were evaluated on.
       </p>
+
+      <SampleClassSelector className="mt-4" />
 
       {state.state === 'loading' && <LoadingState message="Loading dashboard data…" className="mt-6" />}
 

@@ -209,6 +209,32 @@ def test_get_sample_signal_can_be_fed_directly_into_predict() -> None:
     assert "anomaly_score" in response.json()
 
 
+@pytest.mark.parametrize(
+    "label", ["normal", "imbalance", "horizontal-misalignment", "vertical-misalignment"]
+)
+def test_get_sample_signal_with_label_returns_a_real_recording_of_that_class(label: str) -> None:
+    response = client.get("/api/models/sample-signal", params={"label": label})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["label"] == label
+    assert len(body["signal"]) > 0
+
+
+def test_get_sample_signal_different_labels_return_different_real_recordings() -> None:
+    normal = client.get("/api/models/sample-signal", params={"label": "normal"}).json()
+    imbalance = client.get("/api/models/sample-signal", params={"label": "imbalance"}).json()
+
+    assert normal["recording_id"] != imbalance["recording_id"]
+    assert normal["signal"] != imbalance["signal"]
+
+
+def test_get_sample_signal_with_unknown_label_returns_422() -> None:
+    response = client.get("/api/models/sample-signal", params={"label": "bogus-label"})
+
+    assert response.status_code == 422
+
+
 # ---------------------------------------------------------------------------
 # POST /api/models/predict
 # ---------------------------------------------------------------------------

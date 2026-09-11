@@ -4,12 +4,15 @@ import { BrowserRouter } from 'react-router'
 import './index.css'
 import App from './App.tsx'
 import { ActiveModelProvider } from './context/ActiveModelContext.tsx'
+import { ActiveSampleClassProvider } from './context/ActiveSampleClassContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <ActiveModelProvider>
-        <App />
+        <ActiveSampleClassProvider>
+          <App />
+        </ActiveSampleClassProvider>
       </ActiveModelProvider>
     </BrowserRouter>
   </StrictMode>,

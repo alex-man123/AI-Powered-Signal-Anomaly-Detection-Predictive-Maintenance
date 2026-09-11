@@ -36,8 +36,9 @@ from fastapi import APIRouter, HTTPException
 
 from app.api.schemas.errors import ErrorResponse
 from app.api.schemas.models import ModelResponse, PredictRequest, PredictResponse, SampleSignalResponse
+from app.models.signal import SignalLabel
 from app.services import model_service
-from app.services.model_service import ModelNotFoundError
+from app.services.model_service import ModelNotFoundError, SampleSignalError
 
 router = APIRouter()
 
@@ -46,14 +47,18 @@ router = APIRouter()
     "/models/sample-signal",
     response_model=SampleSignalResponse,
     summary="Get a real sample signal to run through prediction",
-    description="One real, already-windowed recording from the same real validation set "
-    "TASK 10.5's own threshold calibration uses -- never synthetic/random data. "
-    "`POST /api/models/predict` requires a real signal from its caller; this endpoint is "
-    "what lets a client (e.g. the frontend Dashboard) demonstrate that route without "
-    "needing its own dataset file access.",
+    description="One real, already-windowed recording for the requested real class "
+    "(`label`, defaults to `normal`) -- never synthetic/random data. `POST /api/models/predict` "
+    "requires a real signal from its caller; this endpoint is what lets a client (e.g. the "
+    "frontend Dashboard) demonstrate that route against a genuine signal of any real class "
+    "without needing its own dataset file access.",
+    responses={422: {"model": ErrorResponse, "description": "`label` is not one of the 4 real classes."}},
 )
-def get_sample_signal() -> SampleSignalResponse:
-    return SampleSignalResponse(**model_service.get_sample_signal())
+def get_sample_signal(label: SignalLabel | None = None) -> SampleSignalResponse:
+    try:
+        return SampleSignalResponse(**model_service.get_sample_signal(label.value if label else None))
+    except SampleSignalError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.get(

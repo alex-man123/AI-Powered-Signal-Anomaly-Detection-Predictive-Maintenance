@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 
+import { SampleClassSelector } from '@/components/SampleClassSelector'
 import { FrequencySpectrumChart } from '@/components/charts/FrequencySpectrumChart'
 import { SpectrogramChart } from '@/components/charts/SpectrogramChart'
 import { TimeSeriesChart } from '@/components/charts/TimeSeriesChart'
@@ -10,6 +11,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { Tabs, TabsList, TabsPanel, TabsTab } from '@/components/ui/tabs'
+import { useActiveSampleClass } from '@/context/ActiveSampleClassContext'
 import { MODEL_LABELS, STATUS_BADGE_CLASS } from '@/lib/model-display'
 import { cn } from '@/lib/utils'
 import {
@@ -27,6 +29,7 @@ import {
   type PredictResponse,
   type PSDResponse,
   type SampleSignalResponse,
+  type SignalLabel,
   type SpectrogramResponse,
 } from '@/services/api'
 
@@ -68,7 +71,7 @@ function toLoadable<T>(result: PromiseSettledResult<T>): Loadable<T> {
   }
 }
 
-function useSignalAnalysisData(): [PageState, () => void] {
+function useSignalAnalysisData(sampleClass: SignalLabel | null): [PageState, () => void] {
   const [state, setState] = useState<PageState>({ status: 'loading' })
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -79,7 +82,7 @@ function useSignalAnalysisData(): [PageState, () => void] {
       // The recording/channel selection this task asks to persist across
       // tabs: fetched once, here, and never touched again by tab switches —
       // see the page component below.
-      const [signal, models] = await Promise.all([getSampleSignal(), getModels()])
+      const [signal, models] = await Promise.all([getSampleSignal(sampleClass ?? undefined), getModels()])
 
       const [fftResult, psdResult, spectrogramResult, featuresResult, ...predictionResults] =
         await Promise.allSettled([
@@ -138,7 +141,7 @@ function useSignalAnalysisData(): [PageState, () => void] {
     return () => {
       cancelled = true
     }
-  }, [reloadToken])
+  }, [reloadToken, sampleClass])
 
   function reload() {
     setState({ status: 'loading' })
@@ -321,7 +324,8 @@ function AIAnalysisTab({
 }
 
 export default function SignalAnalysis() {
-  const [state, reload] = useSignalAnalysisData()
+  const { activeSampleClass } = useActiveSampleClass()
+  const [state, reload] = useSignalAnalysisData(activeSampleClass)
 
   return (
     <div>
@@ -329,6 +333,8 @@ export default function SignalAnalysis() {
       <p className="mt-1 text-sm text-muted-foreground">
         Time, frequency, and AI-driven analysis of a real validation-set signal.
       </p>
+
+      <SampleClassSelector className="mt-4" />
 
       {state.status === 'loading' && <LoadingState message="Loading signal analysis data…" className="mt-6" />}
 

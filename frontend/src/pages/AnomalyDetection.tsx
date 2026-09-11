@@ -1,9 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { SampleClassSelector } from '@/components/SampleClassSelector'
 import { AnomalyPanel, type AnomalyPanelState } from '@/components/anomaly/AnomalyPanel'
 import { useActiveModel } from '@/context/ActiveModelContext'
+import { useActiveSampleClass } from '@/context/ActiveSampleClassContext'
 import { MODEL_LABELS } from '@/lib/model-display'
-import { getModels, getSampleSignal, predict, type ModelResponse, type PredictResponse } from '@/services/api'
+import {
+  getModels,
+  getSampleSignal,
+  predict,
+  type ModelResponse,
+  type PredictResponse,
+  type SignalLabel,
+} from '@/services/api'
 
 type Loadable<T> =
   | { status: 'loading' }
@@ -41,7 +50,10 @@ function useModels(): Loadable<ModelResponse[]> {
 // active-model selection (TASK 11.5) changes — that context is the only
 // source of truth for which model this page uses; nothing is duplicated
 // here.
-function usePrediction(modelType: ModelResponse['model_type'] | null): Loadable<PredictResponse> | null {
+function usePrediction(
+  modelType: ModelResponse['model_type'] | null,
+  sampleClass: SignalLabel | null,
+): Loadable<PredictResponse> | null {
   const [state, setState] = useState<Loadable<PredictResponse> | null>(null)
   const requestIdRef = useRef(0)
 
@@ -53,7 +65,7 @@ function usePrediction(modelType: ModelResponse['model_type'] | null): Loadable<
     const requestId = ++requestIdRef.current
     setState({ status: 'loading' })
 
-    getSampleSignal()
+    getSampleSignal(sampleClass ?? undefined)
       .then((signal) => predict({ model_type: modelType, signal: signal.signal, sampling_rate: signal.sampling_rate }))
       .then((prediction) => {
         if (requestIdRef.current !== requestId) return
@@ -66,15 +78,16 @@ function usePrediction(modelType: ModelResponse['model_type'] | null): Loadable<
           message: error instanceof Error ? error.message : 'Anomaly analysis failed',
         })
       })
-  }, [modelType])
+  }, [modelType, sampleClass])
 
   return modelType === null ? null : state
 }
 
 export default function AnomalyDetection() {
   const { activeModel } = useActiveModel()
+  const { activeSampleClass } = useActiveSampleClass()
   const modelsState = useModels()
-  const predictionState = usePrediction(activeModel)
+  const predictionState = usePrediction(activeModel, activeSampleClass)
 
   const activeModelDetails =
     modelsState.status === 'success' ? modelsState.data.find((model) => model.model_type === activeModel) : undefined
@@ -109,6 +122,8 @@ export default function AnomalyDetection() {
       <p className="mt-1 text-sm text-muted-foreground">
         Real-time read of how unusual the current signal is, using the model selected on the Models page.
       </p>
+
+      <SampleClassSelector className="mt-4" />
 
       <div className="mt-6">
         <AnomalyPanel state={panelState} />

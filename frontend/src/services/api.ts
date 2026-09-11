@@ -297,8 +297,9 @@ export function getDataset(datasetId: number): Promise<DatasetDetailResponse> {
   return apiGet<DatasetDetailResponse>(`/api/datasets/${datasetId}`)
 }
 
-export function getSampleSignal(): Promise<SampleSignalResponse> {
-  return apiGet<SampleSignalResponse>('/api/models/sample-signal')
+export function getSampleSignal(label?: SignalLabel): Promise<SampleSignalResponse> {
+  const query = label ? `?label=${encodeURIComponent(label)}` : ''
+  return apiGet<SampleSignalResponse>(`/api/models/sample-signal${query}`)
 }
 
 export function predict(request: PredictRequest): Promise<PredictResponse> {

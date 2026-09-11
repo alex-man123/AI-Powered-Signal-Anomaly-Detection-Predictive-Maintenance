@@ -1,6 +1,7 @@
 import { Info } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
+import { SampleClassSelector } from '@/components/SampleClassSelector'
 import { RawVsFilteredChart } from '@/components/charts/RawVsFilteredChart'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,6 +9,7 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import { Input } from '@/components/ui/input'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { Slider } from '@/components/ui/slider'
+import { useActiveSampleClass } from '@/context/ActiveSampleClassContext'
 import { cn } from '@/lib/utils'
 import {
   getSampleSignal,
@@ -15,6 +17,7 @@ import {
   type FilterResponse,
   type FilterType,
   type SampleSignalResponse,
+  type SignalLabel,
 } from '@/services/api'
 
 const FILTER_TYPE_LABELS: Record<FilterType, string> = {
@@ -38,14 +41,14 @@ type PageState =
   | { status: 'error'; message: string }
   | { status: 'ready'; data: { signal: SampleSignalResponse } }
 
-function useBaseSignal(): [PageState, () => void] {
+function useBaseSignal(sampleClass: SignalLabel | null): [PageState, () => void] {
   const [state, setState] = useState<PageState>({ status: 'loading' })
   const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     let cancelled = false
 
-    getSampleSignal()
+    getSampleSignal(sampleClass ?? undefined)
       .then((signal) => {
         if (!cancelled) setState({ status: 'ready', data: { signal } })
       })
@@ -61,7 +64,7 @@ function useBaseSignal(): [PageState, () => void] {
     return () => {
       cancelled = true
     }
-  }, [reloadToken])
+  }, [reloadToken, sampleClass])
 
   function reload() {
     setState({ status: 'loading' })
@@ -355,7 +358,8 @@ function DSPLabContent({ signal }: { signal: SampleSignalResponse }) {
 }
 
 export default function DSPLab() {
-  const [state, reload] = useBaseSignal()
+  const { activeSampleClass } = useActiveSampleClass()
+  const [state, reload] = useBaseSignal(activeSampleClass)
 
   return (
     <div>
@@ -363,6 +367,8 @@ export default function DSPLab() {
       <p className="mt-1 text-sm text-muted-foreground">
         Configure a Butterworth filter and compare it against a real validation-set signal.
       </p>
+
+      <SampleClassSelector className="mt-4" />
 
       {state.status === 'loading' && <LoadingState message="Loading signal…" className="mt-6" />}
 

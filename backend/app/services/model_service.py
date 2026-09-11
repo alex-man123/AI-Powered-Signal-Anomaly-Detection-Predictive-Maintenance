@@ -92,8 +92,9 @@ from app.api.schemas.models import (
     PredictionStatus,
 )
 from app.datasets.loader import DATASET_ROOT as REAL_DATASET_ROOT
-from app.datasets.loader import LoadedRecording, load_all_splits
+from app.datasets.loader import LoadedRecording, load_all_splits, load_recording
 from app.datasets.validators import SAMPLING_RATE_HZ
+from app.models.signal import SignalLabel
 from app.features.extractor import extract_feature_matrix, extract_features
 from app.ml.experiment_registry import ExperimentRegistryError, get_experiment_run
 from app.ml.inference import ModelPersistenceError, default_autoencoder_path, default_model_path, default_scaler_path
@@ -276,17 +277,66 @@ def _validation_windows_and_labels() -> tuple[list[Window], list[str]]:
     return windows, labels
 
 
-def get_sample_signal() -> dict[str, Any]:
+class SampleSignalError(ValueError):
+    """Raised for a `label` this endpoint does not have a real, disclosed
+    sample file for. Never silently falls back to a different class."""
+
+
+# label -> (real relative_path, its real split per data/processed/split_manifest.json).
+# normal/horizontal-misalignment reuse VALIDATION_FILES (already loaded above for
+# calibration); imbalance/vertical-misalignment reuse the same two real,
+# manifest-verified TEST-split files `app.services.pca_service.ADDITIONAL_REAL_FILES`
+# already established to cover the 2 real classes absent from Experiment A's own
+# normal/horizontal-misalignment-only file set -- not a second, independently
+# chosen file, the identical real path.
+SAMPLE_SIGNAL_FILES: dict[str, tuple[str, str]] = {
+    SignalLabel.NORMAL.value: (VALIDATION_FILES[0], "validation"),
+    SignalLabel.HORIZONTAL_MISALIGNMENT.value: (VALIDATION_FILES[1], "validation"),
+    SignalLabel.IMBALANCE.value: ("imbalance/10g/16.5888.csv", "test"),
+    SignalLabel.VERTICAL_MISALIGNMENT.value: ("vertical-misalignment/0.51mm/13.1072.csv", "test"),
+}
+
+
+def get_sample_signal(label: str | None = None) -> dict[str, Any]:
     """TASK 11.2 (Dashboard) -- returns the first real, already-windowed
-    validation recording (same real windows `_validation_windows_and_labels`
-    already computes for calibration -- no second CSV-reading code path, no
-    synthetic/random data). Lets a caller run `POST /api/models/predict`
-    against a genuine signal without needing its own dataset file access."""
-    windows, labels = _validation_windows_and_labels()
+    recording for `label` (defaults to `normal`, preserving this function's
+    original behavior when no label is requested). One real, disclosed file
+    per real `SignalLabel` value (`SAMPLE_SIGNAL_FILES`) -- never synthetic/
+    random data, never a file whose real, independently-derived label
+    (`app.datasets.loader.load_recording`, via `mafaulda_parser`) disagrees
+    with the one requested.
+
+    Raises:
+        SampleSignalError: `label` is not one of the 4 real `SignalLabel`
+            values this endpoint has a real file for.
+    """
+    resolved_label = label or SignalLabel.NORMAL.value
+    if resolved_label not in SAMPLE_SIGNAL_FILES:
+        raise SampleSignalError(
+            f"Unknown label {resolved_label!r}; expected one of {sorted(SAMPLE_SIGNAL_FILES)}"
+        )
+
+    relative_path, split = SAMPLE_SIGNAL_FILES[resolved_label]
+    recording = load_recording(relative_path, split, dataset_root=REAL_DATASET_ROOT)
+    if recording.label.value != resolved_label:
+        raise SampleSignalError(
+            f"{relative_path!r}'s real, derived label ({recording.label.value!r}) does not match "
+            f"the requested label ({resolved_label!r}) -- refusing to return mismatched data."
+        )
+
+    df = pd.read_csv(REAL_DATASET_ROOT / relative_path, header=None)
+    values = df[CHANNEL].tolist()
+    windows = create_windows(
+        values,
+        recording_id=relative_path,
+        split=split,
+        window_size=WINDOW_SIZE,
+        overlap=OVERLAP,
+    )
     window = windows[0]
     return {
         "recording_id": window.recording_id,
-        "label": labels[0],
+        "label": resolved_label,
         "channel": CHANNEL,
         "sampling_rate": SAMPLING_RATE_HZ,
         "signal": list(window.values),
