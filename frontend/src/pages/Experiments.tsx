@@ -1,9 +1,11 @@
-import { CircleAlert, Loader } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { LoadingState } from '@/components/ui/LoadingState'
 import { MODEL_LABELS } from '@/lib/model-display'
 import { cn } from '@/lib/utils'
 import {
@@ -134,20 +136,10 @@ function FeatureSetDisplay({ featureSet }: { featureSet: Record<string, unknown>
 
 function ExperimentDetails({ state }: { state: Loadable<ExperimentDetailResponse> }) {
   if (state.status === 'loading') {
-    return (
-      <p className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader className="size-4 animate-spin" />
-        Loading experiment details…
-      </p>
-    )
+    return <LoadingState size="sm" message="Loading experiment details…" />
   }
   if (state.status === 'error') {
-    return (
-      <p className="flex items-center gap-2 text-sm text-anomaly">
-        <CircleAlert className="size-4 shrink-0" />
-        {state.message}
-      </p>
-    )
+    return <ErrorState size="sm" message={state.message} />
   }
 
   const detail = state.data
@@ -320,27 +312,18 @@ export default function Experiments() {
         Representation × Model comparison for the real A/B/C experiment matrix.
       </p>
 
-      {state.status === 'loading' && (
-        <p className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader className="size-4 animate-spin" />
-          Loading experiments…
-        </p>
-      )}
+      {state.status === 'loading' && <LoadingState message="Loading experiments…" className="mt-6" />}
 
       {state.status === 'error' && (
-        <div className="mt-6 flex flex-col items-start gap-3">
-          <p className="flex items-center gap-2 text-sm text-anomaly">
-            <CircleAlert className="size-4 shrink-0" />
-            Failed to load experiments — {state.message}
-          </p>
-          <Button variant="outline" size="sm" onClick={reload}>
-            Retry
-          </Button>
-        </div>
+        <ErrorState message={`Failed to load experiments — ${state.message}`} onRetry={reload} className="mt-6" />
       )}
 
       {state.status === 'success' && experiments.length === 0 && (
-        <p className="mt-6 text-sm text-muted-foreground">No experiments are currently registered.</p>
+        <EmptyState
+          title="No experiments available"
+          message="No experiment results are currently registered by the backend."
+          className="mt-6"
+        />
       )}
 
       {state.status === 'success' && experiments.length > 0 && (

@@ -1,4 +1,3 @@
-import { CircleAlert, Loader } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 
@@ -6,8 +5,10 @@ import { FrequencySpectrumChart } from '@/components/charts/FrequencySpectrumCha
 import { SpectrogramChart } from '@/components/charts/SpectrogramChart'
 import { TimeSeriesChart } from '@/components/charts/TimeSeriesChart'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { LoadingState } from '@/components/ui/LoadingState'
 import { Tabs, TabsList, TabsPanel, TabsTab } from '@/components/ui/tabs'
 import { MODEL_LABELS, STATUS_BADGE_CLASS } from '@/lib/model-display'
 import { cn } from '@/lib/utils'
@@ -149,20 +150,10 @@ function useSignalAnalysisData(): [PageState, () => void] {
 
 function LoadableSection<T>({ loadable, render }: { loadable: Loadable<T>; render: (data: T) => ReactNode }) {
   if (loadable.status === 'loading') {
-    return (
-      <p className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader className="size-4 animate-spin" />
-        Loading…
-      </p>
-    )
+    return <LoadingState size="sm" />
   }
   if (loadable.status === 'error') {
-    return (
-      <p className="flex items-center gap-2 text-sm text-anomaly">
-        <CircleAlert className="size-4 shrink-0" />
-        {loadable.message}
-      </p>
-    )
+    return <ErrorState size="sm" message={loadable.message} />
   }
   return <>{render(loadable.data)}</>
 }
@@ -258,16 +249,20 @@ function FeaturesTab({ features }: { features: Loadable<FeatureExtractionRespons
       <CardContent>
         <LoadableSection
           loadable={features}
-          render={(data) => (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {data.feature_names.map((name, index) => (
-                <div key={name} className="rounded-lg bg-muted/50 p-3">
-                  <p className="text-xs text-muted-foreground capitalize">{name.replaceAll('_', ' ')}</p>
-                  <p className="mt-0.5 font-mono text-sm">{data.values[index].toFixed(4)}</p>
-                </div>
-              ))}
-            </div>
-          )}
+          render={(data) =>
+            data.feature_names.length === 0 ? (
+              <EmptyState size="sm" message="The feature registry returned no features for this signal." />
+            ) : (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {data.feature_names.map((name, index) => (
+                  <div key={name} className="rounded-lg bg-muted/50 p-3">
+                    <p className="text-xs text-muted-foreground capitalize">{name.replaceAll('_', ' ')}</p>
+                    <p className="mt-0.5 font-mono text-sm">{data.values[index].toFixed(4)}</p>
+                  </div>
+                ))}
+              </div>
+            )
+          }
         />
       </CardContent>
     </Card>
@@ -281,6 +276,10 @@ function AIAnalysisTab({
   models: ModelResponse[]
   predictions: Record<ModelType, Loadable<PredictResponse>>
 }) {
+  if (models.length === 0) {
+    return <EmptyState title="No models available" message="No trained models are currently registered by the backend." />
+  }
+
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       {models.map((model) => (
@@ -331,23 +330,14 @@ export default function SignalAnalysis() {
         Time, frequency, and AI-driven analysis of a real validation-set signal.
       </p>
 
-      {state.status === 'loading' && (
-        <p className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader className="size-4 animate-spin" />
-          Loading signal analysis data…
-        </p>
-      )}
+      {state.status === 'loading' && <LoadingState message="Loading signal analysis data…" className="mt-6" />}
 
       {state.status === 'error' && (
-        <div className="mt-6 flex flex-col items-start gap-3">
-          <p className="flex items-center gap-2 text-sm text-anomaly">
-            <CircleAlert className="size-4 shrink-0" />
-            Failed to load signal analysis data — {state.message}
-          </p>
-          <Button variant="outline" size="sm" onClick={reload}>
-            Retry
-          </Button>
-        </div>
+        <ErrorState
+          message={`Failed to load signal analysis data — ${state.message}`}
+          onRetry={reload}
+          className="mt-6"
+        />
       )}
 
       {state.status === 'ready' && (

@@ -50,6 +50,20 @@ export interface DatasetSummaryResponse {
 // Mirrors backend `app.models.signal.SignalLabel` exactly.
 export type SignalLabel = 'normal' | 'imbalance' | 'horizontal-misalignment' | 'vertical-misalignment'
 
+// GET /api/datasets/{id} — mirrors `app.api.schemas.datasets.DatasetDetailResponse`
+// exactly. No `duration` field exists on this real schema — see Dataset.tsx
+// for how it's derived from `samples_per_signal`/`sampling_rate` instead.
+export interface DatasetDetailResponse {
+  id: number
+  name: string
+  signal_count: number
+  sampling_rate: number
+  channels: number[]
+  samples_per_signal: number
+  labels: SignalLabel[]
+  missing_values: number
+}
+
 // GET /api/models/sample-signal
 export interface SampleSignalResponse {
   recording_id: string
@@ -242,6 +256,10 @@ export function getModels(): Promise<ModelResponse[]> {
 
 export function getDatasets(): Promise<DatasetSummaryResponse[]> {
   return apiGet<DatasetSummaryResponse[]>('/api/datasets')
+}
+
+export function getDataset(datasetId: number): Promise<DatasetDetailResponse> {
+  return apiGet<DatasetDetailResponse>(`/api/datasets/${datasetId}`)
 }
 
 export function getSampleSignal(): Promise<SampleSignalResponse> {

@@ -1,7 +1,8 @@
-import { CircleAlert, Loader } from 'lucide-react'
-
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { LoadingState } from '@/components/ui/LoadingState'
 import { STATUS_BADGE_CLASS } from '@/lib/model-display'
 import { cn } from '@/lib/utils'
 import type { PredictResponse, PredictionStatus } from '@/services/api'
@@ -146,21 +147,11 @@ export function AnomalyPanel({ state }: { state: AnomalyPanelState }) {
       </CardHeader>
 
       <CardContent>
-        {state.status === 'empty' && <p className="text-sm text-muted-foreground">{state.message}</p>}
+        {state.status === 'empty' && <EmptyState size="sm" message={state.message} />}
 
-        {state.status === 'loading' && (
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader className="size-4 animate-spin" />
-            Running anomaly analysis…
-          </p>
-        )}
+        {state.status === 'loading' && <LoadingState message="Running anomaly analysis…" />}
 
-        {state.status === 'error' && (
-          <p className="flex items-center gap-2 text-sm text-anomaly">
-            <CircleAlert className="size-4 shrink-0" />
-            {state.message}
-          </p>
-        )}
+        {state.status === 'error' && <ErrorState message={state.message} />}
 
         {state.status === 'success' && (
           <div className="flex flex-col gap-5">

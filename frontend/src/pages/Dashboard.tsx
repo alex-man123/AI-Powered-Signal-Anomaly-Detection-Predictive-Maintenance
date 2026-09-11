@@ -1,9 +1,10 @@
-import { CircleAlert, Loader } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { LoadingState } from '@/components/ui/LoadingState'
 import { MODEL_LABELS, STATUS_BADGE_CLASS } from '@/lib/model-display'
 import {
   getDatasets,
@@ -100,23 +101,14 @@ export default function Dashboard() {
         Overview of the trained models and the dataset they were evaluated on.
       </p>
 
-      {state.state === 'loading' && (
-        <p className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader className="size-4 animate-spin" />
-          Loading dashboard data…
-        </p>
-      )}
+      {state.state === 'loading' && <LoadingState message="Loading dashboard data…" className="mt-6" />}
 
       {state.state === 'error' && (
-        <div className="mt-6 flex flex-col items-start gap-3">
-          <p className="flex items-center gap-2 text-sm text-anomaly">
-            <CircleAlert className="size-4 shrink-0" />
-            Failed to load dashboard data — {state.message}
-          </p>
-          <Button variant="outline" size="sm" onClick={reload}>
-            Retry
-          </Button>
-        </div>
+        <ErrorState
+          message={`Failed to load dashboard data — ${state.message}`}
+          onRetry={reload}
+          className="mt-6"
+        />
       )}
 
       {state.state === 'success' && (
@@ -133,43 +125,52 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <p className="text-xs text-muted-foreground">
-            Anomaly scores below are computed just now by running a real validation-set signal (
-            <code>{state.data.sample.recording_id}</code>, labeled "{state.data.sample.label}") through each
-            model — this project has no live sensor feed, only static dataset signals.
-          </p>
+          {state.data.models.length === 0 ? (
+            <EmptyState
+              title="No models available"
+              message="No trained models are currently registered by the backend."
+            />
+          ) : (
+            <>
+              <p className="text-xs text-muted-foreground">
+                Anomaly scores below are computed just now by running a real validation-set signal (
+                <code>{state.data.sample.recording_id}</code>, labeled "{state.data.sample.label}") through each
+                model — this project has no live sensor feed, only static dataset signals.
+              </p>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            {state.data.models.map((model) => {
-              const prediction = state.data.predictions[model.model_type]
-              return (
-                <Card key={model.model_type}>
-                  <CardHeader>
-                    <CardTitle>{MODEL_LABELS[model.model_type]}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex flex-col gap-4">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Threshold in use</p>
-                      <p className="font-mono text-lg">{model.artifact.threshold_value.toFixed(4)}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {model.artifact.threshold_method} · {model.artifact.score_direction.replaceAll('_', ' ')}
-                      </p>
-                    </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {state.data.models.map((model) => {
+                  const prediction = state.data.predictions[model.model_type]
+                  return (
+                    <Card key={model.model_type}>
+                      <CardHeader>
+                        <CardTitle>{MODEL_LABELS[model.model_type]}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex flex-col gap-4">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Threshold in use</p>
+                          <p className="font-mono text-lg">{model.artifact.threshold_value.toFixed(4)}</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {model.artifact.threshold_method} · {model.artifact.score_direction.replaceAll('_', ' ')}
+                          </p>
+                        </div>
 
-                    <div>
-                      <p className="text-xs text-muted-foreground">Anomaly score / status</p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <span className="font-mono text-lg">{prediction.anomaly_score.toFixed(4)}</span>
-                        <Badge variant="outline" className={STATUS_BADGE_CLASS[prediction.status]}>
-                          {prediction.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Anomaly score / status</p>
+                          <div className="mt-1 flex items-center gap-2">
+                            <span className="font-mono text-lg">{prediction.anomaly_score.toFixed(4)}</span>
+                            <Badge variant="outline" className={STATUS_BADGE_CLASS[prediction.status]}>
+                              {prediction.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

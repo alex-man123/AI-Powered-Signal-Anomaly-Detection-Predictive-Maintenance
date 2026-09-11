@@ -1,10 +1,12 @@
-import { CircleAlert, Info, Loader } from 'lucide-react'
+import { Info } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { RawVsFilteredChart } from '@/components/charts/RawVsFilteredChart'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ErrorState } from '@/components/ui/ErrorState'
 import { Input } from '@/components/ui/input'
+import { LoadingState } from '@/components/ui/LoadingState'
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 import {
@@ -299,12 +301,7 @@ function DSPLabContent({ signal }: { signal: SampleSignalResponse }) {
             onChange={(value) => setParams((current) => ({ ...current, order: Math.round(value) }))}
           />
 
-          {validationMessage && (
-            <p className="flex items-start gap-2 text-sm text-anomaly">
-              <CircleAlert className="mt-0.5 size-4 shrink-0" />
-              {validationMessage}
-            </p>
-          )}
+          {validationMessage && <ErrorState size="sm" message={validationMessage} />}
 
           <div className="rounded-lg bg-muted/50 p-3">
             <p className="mb-2 flex items-center gap-1.5 text-xs font-medium">
@@ -340,18 +337,8 @@ function DSPLabContent({ signal }: { signal: SampleSignalResponse }) {
       <Card className="lg:col-span-2">
         <CardHeader>
           <CardTitle>Raw vs Filtered</CardTitle>
-          {displayState.status === 'loading' && (
-            <CardDescription className="flex items-center gap-1.5">
-              <Loader className="size-3.5 animate-spin" />
-              Updating…
-            </CardDescription>
-          )}
-          {displayState.status === 'error' && (
-            <CardDescription className="flex items-center gap-1.5 text-anomaly">
-              <CircleAlert className="size-3.5 shrink-0" />
-              {displayState.message}
-            </CardDescription>
-          )}
+          {displayState.status === 'loading' && <LoadingState size="sm" message="Updating…" />}
+          {displayState.status === 'error' && <ErrorState size="sm" message={displayState.message} />}
         </CardHeader>
         <CardContent>
           <div className={cn('transition-opacity', displayState.status !== 'success' && 'opacity-60')}>
@@ -377,23 +364,10 @@ export default function DSPLab() {
         Configure a Butterworth filter and compare it against a real validation-set signal.
       </p>
 
-      {state.status === 'loading' && (
-        <p className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader className="size-4 animate-spin" />
-          Loading signal…
-        </p>
-      )}
+      {state.status === 'loading' && <LoadingState message="Loading signal…" className="mt-6" />}
 
       {state.status === 'error' && (
-        <div className="mt-6 flex flex-col items-start gap-3">
-          <p className="flex items-center gap-2 text-sm text-anomaly">
-            <CircleAlert className="size-4 shrink-0" />
-            Failed to load a signal — {state.message}
-          </p>
-          <Button variant="outline" size="sm" onClick={reload}>
-            Retry
-          </Button>
-        </div>
+        <ErrorState message={`Failed to load a signal — ${state.message}`} onRetry={reload} className="mt-6" />
       )}
 
       {state.status === 'ready' && <DSPLabContent signal={state.data.signal} />}

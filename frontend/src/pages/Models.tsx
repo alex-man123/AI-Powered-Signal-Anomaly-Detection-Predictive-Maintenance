@@ -1,9 +1,12 @@
-import { Check, CircleAlert, CircleCheck, Loader } from 'lucide-react'
+import { Check, CircleCheck } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
+import { LoadingState } from '@/components/ui/LoadingState'
 import { useActiveModel } from '@/context/ActiveModelContext'
 import { MODEL_LABELS } from '@/lib/model-display'
 import { cn } from '@/lib/utils'
@@ -177,27 +180,18 @@ export default function Models() {
         Compare the trained models and choose which one Anomaly Detection uses.
       </p>
 
-      {state.status === 'loading' && (
-        <p className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader className="size-4 animate-spin" />
-          Loading models…
-        </p>
-      )}
+      {state.status === 'loading' && <LoadingState message="Loading models…" className="mt-6" />}
 
       {state.status === 'error' && (
-        <div className="mt-6 flex flex-col items-start gap-3">
-          <p className="flex items-center gap-2 text-sm text-anomaly">
-            <CircleAlert className="size-4 shrink-0" />
-            Failed to load models — {state.message}
-          </p>
-          <Button variant="outline" size="sm" onClick={reload}>
-            Retry
-          </Button>
-        </div>
+        <ErrorState message={`Failed to load models — ${state.message}`} onRetry={reload} className="mt-6" />
       )}
 
       {state.status === 'success' && state.data.length === 0 && (
-        <p className="mt-6 text-sm text-muted-foreground">No models are currently registered.</p>
+        <EmptyState
+          title="No models available"
+          message="No trained models are currently registered by the backend."
+          className="mt-6"
+        />
       )}
 
       {state.status === 'success' && state.data.length > 0 && (
