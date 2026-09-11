@@ -197,3 +197,33 @@ def test_result_preserves_real_fault_type_labels_alongside_the_binary_metric(syn
         "fnr",
         "inference_time",
     }
+
+
+# --- against the real, present CWRU dataset (161 real .mat files) ---
+
+
+@pytest.mark.skipif(not _REAL_CWRU_DATASET_PRESENT, reason="Real CWRU dataset not present at data/external/cwru/")
+def test_run_cross_dataset_validation_against_the_real_dataset_produces_two_rate_groups() -> None:
+    results = run_cross_dataset_validation(normal_sampling_rate_hz=DEFAULT_NORMAL_SAMPLING_RATE_HZ)
+
+    assert set(results.keys()) == {"12000hz", "48000hz"}
+    for rate_key in results:
+        assert set(results[rate_key].keys()) == {"isolation_forest", "autoencoder"}
+        for model_result in results[rate_key].values():
+            assert model_result["retraining_performed"] is False
+            assert model_result["recalibrated_on_cwru"] is False
+
+
+@pytest.mark.skipif(not _REAL_CWRU_DATASET_PRESENT, reason="Real CWRU dataset not present at data/external/cwru/")
+def test_real_48khz_group_has_no_normal_examples_in_this_download() -> None:
+    """A real, disclosed property of this particular real download (see
+    app.datasets.cwru_loader's docstring) -- not a bug in the pipeline."""
+    results = run_cross_dataset_validation(normal_sampling_rate_hz=DEFAULT_NORMAL_SAMPLING_RATE_HZ)
+
+    assert results["48000hz"]["isolation_forest"]["cwru_labels_present"] == ["ball", "inner-race", "outer-race"]
+
+
+@pytest.mark.skipif(not _REAL_CWRU_DATASET_PRESENT, reason="Real CWRU dataset not present at data/external/cwru/")
+def test_real_dataset_requires_the_normal_sampling_rate_override() -> None:
+    with pytest.raises(CWRULoaderError, match="sampling rate"):
+        run_cross_dataset_validation()
