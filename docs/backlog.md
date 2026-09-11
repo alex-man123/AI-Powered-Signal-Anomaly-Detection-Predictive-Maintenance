@@ -1,7 +1,8 @@
-# BACKLOG COMPLET DE IMPLEMENTARE — AI Signal Anomaly Detection Platform
+# COMPLETE IMPLEMENTATION BACKLOG — AI Signal Anomaly Detection Platform
 
-> Sursă de adevăr: `blueprint.md`. Toate rezultatele numerice marcate `NOT YET MEASURED` până la execuția reală.
-> Notă de scop: pentru task-uri de feature engineering (Phase 5) și pentru task-uri de UI repetitive (Phase 11), grupez sub-elemente înrudite într-un singur task cu Acceptance Criteria per element, nu ca task-uri separate complete — altfel documentul ar avea >150 de task-uri identice ca structură. Fiecare grupare rămâne verificabilă individual.
+> **Source of truth:** `blueprint.md`. All numerical results marked as `NOT YET MEASURED` until actual execution.
+
+> **Scope note:** For feature engineering tasks (Phase 5) and repetitive UI tasks (Phase 11), related sub-elements are grouped into a single task with Acceptance Criteria per element rather than being split into separate full tasks. Otherwise, the document would contain >150 tasks with identical structure. Each grouping remains individually verifiable.
 
 ---
 
@@ -9,413 +10,526 @@
 
 ## PHASE 1 — Project Setup
 
-### TASK 1.1 — Inițializare repository și structură de directoare
+### TASK 1.1 — Initialize Repository and Directory Structure
+
 **Priority:** P0 | **Dependencies:** None | **Blocks:** 1.2, 1.4
 
-**User Story:** Ca developer, vreau o structură de repository clară, astfel încât fiecare componentă (backend/frontend/data/models/docs) să aibă un loc predictibil.
+**User Story:** As a developer, I want a clear repository structure so that each component (backend/frontend/data/models/docs) has a predictable location.
 
-**Description:** Creează structura de foldere din blueprint (secțiunea 29): `backend/`, `frontend/`, `data/{raw,processed,external}`, `models/`, `notebooks/`, `scripts/`, `docs/`.
+**Description:** Create the folder structure defined in the blueprint (section 29): `backend/`, `frontend/`, `data/{raw,processed,external}`, `models/`, `notebooks/`, `scripts/`, `docs/`.
 
 **Implementation Steps:**
-1. Creează directoarele de top-level.
-2. Creează `.gitignore` (Python, Node, `.env`, `data/raw/*`, `models/*.pt`, `models/*.pkl`, `__pycache__`, `.venv`, `node_modules`).
-3. Creează `.env.example` cu variabilele anticipate (`DATABASE_URL`, `MODEL_DIR`, `DATA_DIR`, `LOG_LEVEL`).
-4. Creează `README.md` cu schelet de secțiuni (completat progresiv pe parcursul fazelor).
+
+1. Create the top-level directories.
+
+2. Create `.gitignore` (Python, Node, `.env`, `data/raw/*`, `models/*.pt`, `models/*.pkl`, `__pycache__`, `.venv`, `node_modules`).
+
+3. Create `.env.example` with anticipated variables (`DATABASE_URL`, `MODEL_DIR`, `DATA_DIR`, `LOG_LEVEL`).
+
+4. Create `README.md` with a section skeleton to be progressively completed throughout the phases.
 
 **Acceptance Criteria:**
-- [ ] AC1: Given repo-ul clonat, when rulez `ls`, then văd toate directoarele de top-level din secțiunea 29 a blueprint-ului.
-- [ ] AC2: `.gitignore` exclude `.venv`, `node_modules`, `data/raw/*`, `*.pkl`, `*.pt`, `.env`.
-- [ ] AC3: `.env.example` nu conține valori secrete reale.
 
-**Testing:** N/A (structural, verificat manual + code review).
+* [ ] AC1: Given the repository is cloned, when I run `ls`, then I see all top-level directories defined in section 29 of the blueprint.
 
-**Definition of Done:** structură creată, `.gitignore` funcțional (verificat cu `git status` după adăugare fișiere ignorate), README schelet există.
+* [ ] AC2: `.gitignore` excludes `.venv`, `node_modules`, `data/raw/*`, `*.pkl`, `*.pt`, `.env`.
+
+* [ ] AC3: `.env.example` contains no real secrets.
+
+**Testing:** N/A (structural, verified manually + code review).
+
+**Definition of Done:** Structure created, `.gitignore` functional (verified with `git status` after adding ignored files), README skeleton exists.
 
 **Files/Modules Expected:** `/`, `.gitignore`, `.env.example`, `README.md`.
 
 ---
 
-### TASK 1.2 — Configurare backend cu uv + pyproject.toml
+### TASK 1.2 — Configure Backend with uv + pyproject.toml
+
 **Priority:** P0 | **Dependencies:** 1.1 | **Blocks:** 1.3, 1.5
 
-**User Story:** Ca developer, vreau un mediu Python reproductibil gestionat cu `uv`, astfel încât dependențele să fie versionate și instalarea să fie rapidă.
+**User Story:** As a developer, I want a reproducible Python environment managed with `uv` so that dependencies are versioned and installation is fast.
 
 **Implementation Steps:**
-1. `uv init` în `backend/`.
-2. Definește `pyproject.toml` cu dependențe: `fastapi`, `uvicorn`, `pydantic`, `pydantic-settings` (pentru `BaseSettings` în API-ul modern Pydantic v2 — `BaseSettings` nu mai e în `pydantic` de bază), `sqlalchemy` (persistență metadata, Phase 2+), `numpy`, `scipy`, `pandas`, `scikit-learn`, `torch`, `pytest`, `httpx` (pentru TestClient).
-3. `uv sync` pentru a genera `uv.lock` și `.venv`.
-4. Verifică activarea mediului și importul `fastapi`.
+
+1. Run `uv init` inside `backend/`.
+
+2. Define `pyproject.toml` with dependencies: `fastapi`, `uvicorn`, `pydantic`, `pydantic-settings` (for `BaseSettings` in modern Pydantic v2 — `BaseSettings` is no longer included in the base `pydantic` package), `sqlalchemy` (metadata persistence, Phase 2+), `numpy`, `scipy`, `pandas`, `scikit-learn`, `torch`, `pytest`, `httpx` (for TestClient).
+
+3. Run `uv sync` to generate `uv.lock` and `.venv`.
+
+4. Verify environment activation and successful `fastapi` import.
 
 **Acceptance Criteria:**
-- [ ] AC1: Given `backend/pyproject.toml` există, when rulez `uv sync`, then se creează `.venv` fără erori.
-- [ ] AC2: `uv run python -c "import fastapi, numpy, scipy, sklearn, torch, sqlalchemy, pydantic_settings"` rulează fără `ImportError`.
-- [ ] AC3: `uv.lock` e generat și committabil.
 
-**Testing:** Verificare manuală a comenzii de sync + import smoke-test.
+* [ ] AC1: Given `backend/pyproject.toml` exists, when I run `uv sync`, then `.venv` is created without errors.
 
-**Definition of Done:** mediu funcțional, toate pachetele critice importabile.
+* [ ] AC2: `uv run python -c "import fastapi, numpy, scipy, sklearn, torch, sqlalchemy, pydantic_settings"` runs without `ImportError`.
+
+* [ ] AC3: `uv.lock` is generated and can be committed.
+
+**Testing:** Manual verification of the sync command + import smoke test.
+
+**Definition of Done:** Functional environment, all critical packages import successfully.
 
 **Files/Modules Expected:** `backend/pyproject.toml`, `backend/uv.lock`.
 
 ---
 
-### TASK 1.3 — Schelet FastAPI + health endpoint
+### TASK 1.3 — FastAPI Skeleton + Health Endpoint
+
 **Priority:** P0 | **Dependencies:** 1.2 | **Blocks:** 1.6, 10.x
 
-**User Story:** Ca developer, vreau un endpoint de health, astfel încât să pot verifica rapid că backend-ul rulează și e accesibil din frontend.
+**User Story:** As a developer, I want a health endpoint so that I can quickly verify that the backend is running and accessible from the frontend.
 
 **Implementation Steps:**
-1. Creează `app/main.py` cu instanța FastAPI + CORS middleware (origine frontend permisă din `.env`).
-2. Creează `app/api/routes/health.py` cu `GET /api/health`.
-3. Creează `app/core/config.py` (Pydantic `BaseSettings`, citește `.env`).
-4. Creează `app/core/logging.py` (config logging structurat, nivel din env).
+
+1. Create `app/main.py` with the FastAPI instance + CORS middleware (frontend origin allowed through `.env`).
+
+2. Create `app/api/routes/health.py` with `GET /api/health`.
+
+3. Create `app/core/config.py` (Pydantic `BaseSettings`, reads `.env`).
+
+4. Create `app/core/logging.py` (structured logging configuration, log level from environment).
 
 **Acceptance Criteria:**
-- [ ] AC1: Given backend-ul pornit (`uvicorn app.main:app`), when fac `GET /api/health`, then primesc HTTP 200.
-- [ ] AC2: Body-ul răspunsului conține `{"status": "ok"}`.
-- [ ] AC3: Un test pytest de integrare (folosind `TestClient`) verifică AC1 și AC2.
 
-**Testing:** `tests/api/test_health.py` — integration test cu `TestClient`.
+* [ ] AC1: Given the backend is running (`uvicorn app.main:app`), when I call `GET /api/health`, then I receive HTTP 200.
 
-**Definition of Done:** endpoint funcțional, test verde, logging configurat, fără logică de business în route handler.
+* [ ] AC2: The response body contains `{"status": "ok"}`.
+
+* [ ] AC3: A pytest integration test (using `TestClient`) verifies AC1 and AC2.
+
+**Testing:** `tests/api/test_health.py` — integration test using `TestClient`.
+
+**Definition of Done:** Endpoint functional, test passing, logging configured, no business logic inside the route handler.
 
 **Files/Modules Expected:** `backend/app/main.py`, `backend/app/api/routes/health.py`, `backend/app/core/config.py`, `backend/app/core/logging.py`, `backend/tests/api/test_health.py`.
 
 ---
 
-### TASK 1.4 — Inițializare frontend (Vite + React + TypeScript)
+### TASK 1.4 — Initialize Frontend (Vite + React + TypeScript)
+
 **Priority:** P0 | **Dependencies:** 1.1 | **Blocks:** 1.5, 11.x
 
 **Implementation Steps:**
-1. `npm create vite@latest frontend -- --template react-ts`.
-2. Instalează Tailwind CSS + configurare (`tailwind.config.ts`, `postcss.config.js`, `index.css` cu directive Tailwind).
-3. Instalează shadcn/ui (init + componente de bază: `button`, `card`, `badge`).
-4. Instalează `plotly.js` + `react-plotly.js` + tipuri.
+
+1. Run `npm create vite@latest frontend -- --template react-ts`.
+
+2. Install and configure Tailwind CSS (`tailwind.config.ts`, `postcss.config.js`, `index.css` with Tailwind directives).
+
+3. Install shadcn/ui (initialize + basic components: `button`, `card`, `badge`).
+
+4. Install `plotly.js` + `react-plotly.js` + types.
 
 **Acceptance Criteria:**
-- [ ] AC1: Given frontend-ul instalat, when rulez `npm run dev`, then aplicația pornește pe `localhost:5173` fără erori în consolă.
-- [ ] AC2: O clasă Tailwind (ex. `bg-slate-900`) aplicată pe un element se reflectă vizual.
-- [ ] AC3: Un component shadcn/ui (`<Button>`) se randează fără erori TypeScript.
 
-**Testing:** verificare manuală vizuală + `tsc --noEmit` fără erori.
+* [ ] AC1: Given the frontend is installed, when I run `npm run dev`, then the application starts on `localhost:5173` without console errors.
 
-**Definition of Done:** dev server pornește, Tailwind activ, shadcn/ui funcțional, Plotly importabil.
+* [ ] AC2: A Tailwind class (e.g. `bg-slate-900`) applied to an element is visually reflected.
 
-**Files/Modules Expected:** `frontend/` complet, `frontend/tailwind.config.ts`, `frontend/src/index.css`.
+* [ ] AC3: A shadcn/ui component (`<Button>`) renders without TypeScript errors.
+
+**Testing:** Manual visual verification + `tsc --noEmit` without errors.
+
+**Definition of Done:** Dev server starts, Tailwind active, shadcn/ui functional, Plotly importable.
+
+**Files/Modules Expected:** `frontend/` complete, `frontend/tailwind.config.ts`, `frontend/src/index.css`.
 
 ---
 
-### TASK 1.5 — Design tokens inițiale (design system)
+### TASK 1.5 — Initial Design Tokens (Design System)
+
 **Priority:** P1 | **Dependencies:** 1.4 | **Blocks:** 11.x, 12.x
 
-**Description:** Definim paleta de culori (dark-first, un singur accent), typography (Inter + JetBrains Mono), spacing scale, înainte de orice componentă UI (per secțiunea 30 blueprint).
+**Description:** Define the color palette (dark-first, single accent), typography (Inter + JetBrains Mono), and spacing scale before implementing any UI components (according to section 30 of the blueprint).
 
 **Implementation Steps:**
-1. Definește variabile CSS custom în `frontend/src/styles/globals.css` (`--color-bg`, `--color-surface`, `--color-accent`, `--color-normal`, `--color-warning`, `--color-anomaly`, `--font-sans`, `--font-mono`).
-2. Configurează Tailwind `theme.extend` să folosească aceste variabile.
-3. Documentează tokens în `docs/design-system.md`.
+
+1. Define CSS custom variables in `frontend/src/styles/globals.css` (`--color-bg`, `--color-surface`, `--color-accent`, `--color-normal`, `--color-warning`, `--color-anomaly`, `--font-sans`, `--font-mono`).
+
+2. Configure Tailwind `theme.extend` to use these variables.
+
+3. Document the tokens in `docs/design-system.md`.
 
 **Acceptance Criteria:**
-- [ ] AC1: Toate culorile de status (NORMAL/WARNING/ANOMALY) sunt definite o singură dată, ca variabile, nu hard-codate în componente.
-- [ ] AC2: `docs/design-system.md` conține paleta completă și regulile de spacing.
 
-**Testing:** review vizual manual.
+* [ ] AC1: All status colors (NORMAL/WARNING/ANOMALY) are defined exactly once as variables and are not hard-coded inside components.
 
-**Definition of Done:** tokens definite și documentate, zero culori hard-codate în commit-urile ulterioare de UI.
+* [ ] AC2: `docs/design-system.md` contains the complete palette and spacing rules.
+
+**Testing:** Manual visual review.
+
+**Definition of Done:** Tokens defined and documented, zero hard-coded colors in subsequent UI commits.
 
 **Files/Modules Expected:** `frontend/src/styles/globals.css`, `docs/design-system.md`.
 
 ---
 
-### TASK 1.6 — Conectivitate frontend-backend (smoke test end-to-end)
+### TASK 1.6 — Frontend-Backend Connectivity (End-to-End Smoke Test)
+
 **Priority:** P0 | **Dependencies:** 1.3, 1.4 | **Blocks:** Phase 2
 
 **Implementation Steps:**
-1. Configurează `VITE_API_URL` în `.env` frontend.
-2. Creează `frontend/src/services/api.ts` cu un client fetch minimal.
-3. Apelează `/api/health` dintr-o pagină placeholder și afișează statusul.
+
+1. Configure `VITE_API_URL` in the frontend `.env`.
+
+2. Create `frontend/src/services/api.ts` with a minimal fetch client.
+
+3. Call `/api/health` from a placeholder page and display the status.
 
 **Acceptance Criteria:**
-- [ ] AC1: Given ambele servere pornite, when încarc pagina principală, then văd afișat statusul "ok" primit real de la backend (nu hard-codat în frontend).
-- [ ] AC2: Dacă backend-ul e oprit, frontend-ul afișează o stare de eroare vizibilă, nu un ecran alb sau crash.
 
-**Testing:** verificare manuală cu backend pornit/oprit.
+* [ ] AC1: Given both servers are running, when I load the main page, then I see the status `"ok"` received from the backend (not hard-coded in the frontend).
 
-**Definition of Done:** conectivitate end-to-end confirmată vizual, stare de eroare tratată.
+* [ ] AC2: If the backend is stopped, the frontend displays a visible error state rather than a blank screen or crash.
 
-**Files/Modules Expected:** `frontend/src/services/api.ts`, componentă placeholder de status.
+**Testing:** Manual verification with backend running/stopped.
+
+**Definition of Done:** End-to-end connectivity visually confirmed, error state handled.
+
+**Files/Modules Expected:** `frontend/src/services/api.ts`, placeholder status component.
 
 ---
 
-## PHASE 1.5 — Dataset Audit (obligatorie, blochează Phase 2)
+## PHASE 1.5 — Dataset Audit (Mandatory, Blocks Phase 2)
 
-> **BLOCKER CUNOSCUT:** aceste task-uri necesită fișierele reale MAFAULDA în data/raw/mafaulda/. Nu se execută pe date presupuse sau simulate.
+> **KNOWN BLOCKER:** These tasks require the real MAFAULDA files in `data/raw/mafaulda/`. They must not be executed against assumed or simulated data.
 
-### TASK 1.5.1 — Localizare și inventariere fișiere dataset
+### TASK 1.5.1 — Locate and Inventory Dataset Files
+
 **Priority:** P0 | **Dependencies:** 1.1 | **Blocks:** 1.5.2–1.5.9, Phase 2
 
-**User Story:** Ca ML engineer, vreau un inventar complet al fișierelor MAFAULDA disponibile, astfel încât să pot proiecta corect split-ul train/val/test.
+**User Story:** As an ML engineer, I want a complete inventory of the available MAFAULDA files so that I can correctly design the train/validation/test split.
 
 **Implementation Steps:**
-1. Confirmă locația fișierelor uploadate (`data/raw/mafaulda/`).
-2. Scanează recursiv, listează toate fișierele (nume, extensie, dimensiune).
-3. Salvează inventarul brut ca `docs/dataset_audit/file_inventory.csv`.
+
+1. Confirm the location of the uploaded files (`data/raw/mafaulda/`).
+
+2. Recursively scan and list all files (name, extension, size).
+
+3. Save the raw inventory as `docs/dataset_audit/file_inventory.csv`.
 
 **Acceptance Criteria:**
-- [ ] AC1: Given fișierele MAFAULDA urcate, when rulez scriptul de inventariere, then obțin un CSV cu toate fișierele găsite, fără omisiuni (verificat prin numărare `find` vs. rânduri CSV).
-- [ ] AC2: Dacă niciun fișier nu e găsit, scriptul raportează explicit eroare, nu un inventar gol tratat ca "succes".
 
-**Testing:** test unitar pe un folder sintetic mic cu fișiere fictive, verificând că numărul detectat = numărul creat.
+* [ ] AC1: Given the MAFAULDA files have been uploaded, when I run the inventory script, then I obtain a CSV containing all discovered files without omissions (verified by comparing `find` count vs. CSV row count).
 
-**Definition of Done:** inventar complet generat sau eroare explicită dacă lipsesc datele.
+* [ ] AC2: If no files are found, the script explicitly reports an error rather than treating an empty inventory as a success.
+
+**Testing:** Unit test using a small synthetic folder with dummy files, verifying that detected count = created file count.
+
+**Definition of Done:** Complete inventory generated, or explicit error reported if the dataset is missing.
 
 **Files/Modules Expected:** `backend/scripts/audit_inventory.py`, `docs/dataset_audit/file_inventory.csv`.
 
-**Notes:** **Blocat până la upload real al dataset-ului de către utilizator.**
+**Notes:** **Blocked until the real dataset is uploaded by the user.**
 
 ---
 
-### TASK 1.5.2 — Identificare structură recording (nume fișier → stare + condiție)
+### TASK 1.5.2 — Identify Recording Structure (Filename → State + Condition)
+
 **Priority:** P0 | **Dependencies:** 1.5.1 | **Blocks:** 1.5.5, 2.x
 
 **Implementation Steps:**
-1. Parsează convenția de denumire reală a fișierelor (nu presupusă din documentație online).
-2. Extrage per fișier: clasă/stare (normal/imbalance/misalignment/etc.), dacă e codificată în calea folderului sau numele fișierului.
-3. Documentează maparea exactă observată.
+
+1. Parse the actual file naming convention (not one assumed from online documentation).
+
+2. Extract per file: class/state (normal/imbalance/misalignment/etc.), if encoded in the folder path or filename.
+
+3. Document the exact mapping observed.
 
 **Acceptance Criteria:**
-- [ ] AC1: Fiecare fișier din inventar are o stare asociată, derivată din structura reală (folder/nume), nu presupusă din blueprint.
-- [ ] AC2: Dacă un fișier nu poate fi mapat la o stare cunoscută, e marcat explicit `UNKNOWN`, nu ignorat silențios.
 
-**Testing:** test unitar pe mostre de nume de fișier cunoscute → verifică maparea corectă.
+* [ ] AC1: Every file in the inventory has an associated state derived from the actual structure (folder/name), not assumed from the blueprint.
 
-**Definition of Done:** mapare completă documentată în `docs/dataset_audit/recording_mapping.md`.
+* [ ] AC2: If a file cannot be mapped to a known state, it is explicitly marked as `UNKNOWN` rather than silently ignored.
+
+**Testing:** Unit tests using known filename samples → verify correct mapping.
+
+**Definition of Done:** Complete mapping documented in `docs/dataset_audit/recording_mapping.md`.
 
 **Files/Modules Expected:** `backend/app/datasets/mafaulda_parser.py`, `docs/dataset_audit/recording_mapping.md`.
 
 ---
 
-### TASK 1.5.3 — Identificare canale, sampling rate, lungime semnal
+### TASK 1.5.3 — Identify Channels, Sampling Rate, and Signal Length
+
 **Priority:** P0 | **Dependencies:** 1.5.1
 
 **Implementation Steps:**
-1. Citește un eșantion de fișiere cu pandas.
-2. Confirmă numărul real de coloane/canale per fișier și numele lor.
-3. Confirmă sampling rate-ul real (verificat, nu doar citat din literatură) și durata semnalului.
+
+1. Read a sample of files using pandas.
+
+2. Confirm the actual number of columns/channels per file and their names.
+
+3. Confirm the actual sampling rate (verified, not merely cited from literature) and signal duration.
 
 **Acceptance Criteria:**
-- [ ] AC1: Numărul de coloane observat e documentat explicit (poate diferi de ce sugerează sursele externe).
-- [ ] AC2: Sampling rate-ul e confirmat fie din metadata fișierului, fie calculat din numărul de eșantioane / durata cunoscută, și documentat cu sursa exactă a confirmării.
 
-**Testing:** verificare pe minim 3 fișiere din clase diferite, comparate pentru consistență.
+* [ ] AC1: The observed number of columns is explicitly documented (it may differ from what external sources suggest).
 
-**Definition of Done:** raport scris cu structura reală confirmată a datelor.
+* [ ] AC2: The sampling rate is confirmed either from file metadata or calculated from the number of samples / known duration, with the exact source of confirmation documented.
+
+**Testing:** Verification on at least 3 files from different classes, compared for consistency.
+
+**Definition of Done:** Written report containing the confirmed real data structure.
 
 **Files/Modules Expected:** `docs/dataset_audit/signal_structure.md`.
 
 ---
 
-### TASK 1.5.4 — Distribuția claselor și turațiilor (rotation frequency)
+### TASK 1.5.4 — Class and Rotation Distribution
+
 **Priority:** P0 | **Dependencies:** 1.5.2
 
 **Implementation Steps:**
-1. Numără fișiere per clasă.
-2. Extrage/calculează turația per fișier, cu **sursa documentată explicit per valoare** — nu se tratează o valoare citită din numele fișierului ca măsurătoare fizică echivalentă cu una din tahometru. Câmp obligatoriu per recording:
-   ```
-   rotation_source: "tachometer" | "metadata" | "filename" | "unavailable"
-   rotation_frequency_hz: <valoare> (null dacă unavailable)
-   ```
-3. Generează histogramă a distribuției claselor și a turațiilor, adnotată cu sursa.
+
+1. Count files per class.
+
+2. Extract/calculate rotation per file, with the **source explicitly documented for every value** — a value read from a filename must not be treated as a physical measurement equivalent to one obtained from a tachometer. Mandatory fields per recording:
+
+```text
+rotation_source: "tachometer" | "metadata" | "filename" | "unavailable"
+
+rotation_frequency_hz: <value> (null if unavailable)
+```
+
+3. Generate a histogram of class and rotation distributions, annotated with the source.
 
 **Acceptance Criteria:**
-- [ ] AC1: Există un tabel `clasă → număr de fișiere` complet, fără clase omise.
-- [ ] AC2: Dacă distribuția e puternic dezechilibrată (ex. o clasă are <10% din numărul mediu), asta e semnalat explicit ca risc pentru Phase 6-9, nu ignorat.
-- [ ] AC3: Fiecare valoare de turație raportată e însoțită explicit de `rotation_source` — raportul nu prezintă o valoare din filename cu aceeași încredere ca una măsurată direct de tahometru.
 
-**Testing:** verificare manuală a sumei totale (suma pe clase = total fișiere din inventar).
+* [ ] AC1: A complete `class → file count` table exists, with no classes omitted.
 
-**Definition of Done:** raport + grafic distribuție salvate.
+* [ ] AC2: If the distribution is strongly imbalanced (e.g. one class has <10% of the average count), this is explicitly flagged as a risk for Phases 6–9 rather than ignored.
+
+* [ ] AC3: Every reported rotation value is explicitly accompanied by `rotation_source` — the report must not present a filename-derived value with the same confidence as one directly measured by a tachometer.
+
+**Testing:** Manual verification of total count (sum across classes = total files in inventory).
+
+**Definition of Done:** Report + distribution plot saved.
 
 **Files/Modules Expected:** `docs/dataset_audit/class_distribution.md`, `docs/dataset_audit/class_distribution.png`.
 
 ---
 
-### TASK 1.5.5 — Detectare replicări/duplicate ale acelorași condiții
+### TASK 1.5.5 — Detect Replications/Duplicates of the Same Conditions
+
 **Priority:** P1 | **Dependencies:** 1.5.2, 1.5.4
 
 **Implementation Steps:**
-1. Grupează fișierele după (clasă, turație aproximativă).
-2. Identifică grupuri cu multiple fișiere (replicări reale) vs. condiții unice.
+
+1. Group files by `(class, approximate rotation)`.
+
+2. Identify groups containing multiple files (real replications) vs. unique conditions.
 
 **Acceptance Criteria:**
-- [ ] AC1: Raportul indică explicit câte grupuri (clasă, turație) au ≥2 fișiere replicate.
-- [ ] AC2: Aceste informații alimentează direct decizia de split (task 1.5.7).
 
-**Testing:** verificare manuală pe un subset cunoscut.
+* [ ] AC1: The report explicitly indicates how many `(class, rotation)` groups contain ≥2 replicated files.
 
-**Definition of Done:** raport de replicări generat.
+* [ ] AC2: This information directly informs the split decision (Task 1.5.7).
+
+**Testing:** Manual verification on a known subset.
+
+**Definition of Done:** Replication analysis report generated.
 
 **Files/Modules Expected:** `docs/dataset_audit/replication_analysis.md`.
 
 ---
 
-### TASK 1.5.6 — Analiză risc de leakage specifică datelor reale
+### TASK 1.5.6 — Analyze Data Leakage Risk Specific to the Real Dataset
+
 **Priority:** P0 | **Dependencies:** 1.5.1–1.5.5 | **Blocks:** 1.5.7
 
-**Description:** Nu presupunem generic "split per fișier e suficient" — verificăm dacă există factori suplimentari de leakage (ex. mai multe fișiere din aceeași sesiune de înregistrare, cu zgomot de fundal identic, care ar trebui tratate ca un singur grup la split).
+**Description:** Do not generically assume that "split per file is sufficient" — verify whether there are additional leakage factors (e.g. multiple files from the same recording session, with identical background noise, that should be treated as a single group during splitting).
 
 **Acceptance Criteria:**
-- [ ] AC1: Raportul documentează explicit dacă unitatea de split "per fișier" e suficientă sau dacă trebuie extinsă la "per grup de sesiune".
-- [ ] AC2: Decizia finală de split e justificată cu date din audit, nu presupusă din blueprint.
 
-**Testing:** N/A (analiză documentată, revizuită manual).
+* [ ] AC1: The report explicitly documents whether the "per file" split unit is sufficient or whether it must be extended to "per session group".
 
-**Definition of Done:** decizie de split scrisă și justificată cu referință directă la datele reale.
+* [ ] AC2: The final split decision is justified using evidence from the audit rather than assumed from the blueprint.
+
+**Testing:** N/A (documented analysis, manually reviewed).
+
+**Definition of Done:** Split decision written and justified with direct references to the real data.
 
 **Files/Modules Expected:** `docs/dataset_audit/leakage_analysis.md`.
 
 ---
 
-### TASK 1.5.7 — Definire strategie finală train/val/test split
+### TASK 1.5.7 — Define Final Train/Validation/Test Split Strategy
+
 **Priority:** P0 | **Dependencies:** 1.5.6 | **Blocks:** Phase 2
 
 **Implementation Steps:**
-1. Alocă fișiere (nu ferestre) la train/val/test, stratificat pe clasă.
-2. Documentează exact ce fișiere merg în fiecare split (listă explicită, reproductibilă cu seed fixat).
+
+1. Assign files (not windows) to train/validation/test, stratified by class.
+
+2. Document exactly which files go into each split (explicit list, reproducible with a fixed seed).
 
 **Acceptance Criteria:**
-- [ ] AC1: Niciun fișier nu apare în mai mult de un split.
-- [ ] AC2: Fiecare split conține reprezentare din fiecare clasă majoră (verificat explicit, nu presupus).
-- [ ] AC3: Split-ul e determinist (același seed → aceeași alocare, verificat cu test).
 
-**Testing:** test unitar care rulează funcția de split de două ori cu același seed și verifică identitatea rezultatelor.
+* [ ] AC1: No file appears in more than one split.
 
-**Definition of Done:** listă finală de split salvată ca artifact (`data/processed/split_manifest.json`).
+* [ ] AC2: Each split contains representation from every major class (explicitly verified, not assumed).
+
+* [ ] AC3: The split is deterministic (same seed → same allocation, verified with a test).
+
+**Testing:** Unit test that runs the split function twice with the same seed and verifies identical results.
+
+**Definition of Done:** Final split list saved as an artifact (`data/processed/split_manifest.json`).
 
 **Files/Modules Expected:** `backend/app/datasets/split.py`, `data/processed/split_manifest.json`, `backend/tests/dataset/test_split.py`.
 
 ---
 
-### TASK 1.5.8 — Verificare calitate date (missing values, semnal corupt)
+### TASK 1.5.8 — Data Quality Verification (Missing Values, Corrupted Signals)
+
 **Priority:** P1 | **Dependencies:** 1.5.3
 
 **Implementation Steps:**
-1. Verifică NaN/valori lipsă per fișier.
-2. Verifică semnale constante/zero (posibil senzor defect în înregistrare).
+
+1. Check NaN/missing values per file.
+
+2. Check constant/zero signals (potential defective sensor recording).
 
 **Acceptance Criteria:**
-- [ ] AC1: Raportul listează explicit orice fișier cu probleme de calitate detectate.
-- [ ] AC2: Dacă există fișiere problematice, decizia (excludere/reparare) e documentată cu motiv.
 
-**Testing:** test pe fișier sintetic cu NaN injectat → verifică detectarea.
+* [ ] AC1: The report explicitly lists every file with detected quality issues.
 
-**Definition of Done:** raport calitate date generat.
+* [ ] AC2: If problematic files exist, the decision (exclude/repair) is documented with the reason.
+
+**Testing:** Test using a synthetic file with injected NaN values → verify detection.
+
+**Definition of Done:** Data quality report generated.
 
 **Files/Modules Expected:** `docs/dataset_audit/data_quality_report.md`.
 
 ---
 
-### TASK 1.5.9 — Raport final de audit (document consolidat)
+### TASK 1.5.9 — Final Audit Report (Consolidated Document)
+
 **Priority:** P0 | **Dependencies:** 1.5.1–1.5.8 | **Blocks:** Phase 2 (Gate)
 
-**Description:** Consolidează toate task-urile 1.5.x într-un singur document, sursă de adevăr pentru toate deciziile de dataset din fazele următoare.
+**Description:** Consolidate all 1.5.x tasks into a single document that serves as the source of truth for all dataset decisions in subsequent phases.
 
 **Acceptance Criteria:**
-- [ ] AC1: Documentul răspunde explicit la toate întrebările din secțiunea 6 a blueprint-ului (organizare fișiere, canale, recording ID, turații, replicări, split).
-- [ ] AC2: Nicio afirmație din document nu e presupusă — fiecare are sursă (fișier/script care a generat-o).
 
-**Definition of Done:** `docs/dataset_audit/AUDIT_REPORT.md` complet, revizuit.
+* [ ] AC1: The document explicitly answers all questions from section 6 of the blueprint (file organization, channels, recording ID, rotation, replications, split).
 
-**Files/Modules Expected:** `docs/dataset_audit/AUDIT_REPORT.md`.
+* [ ] AC2: No statement in the document is assumed — each statement has a source (file/script that generated it).
 
----
+**Definition of Done:** `docs/dataset_audit/AUDIT_REPORT.md` is complete and reviewed.
+
+## **Files/Modules Expected:** `docs/dataset_audit/AUDIT_REPORT.md`.
+
 
 # EPIC 2 — Data & Signal Processing Foundation
 
 ## PHASE 2 — Dataset Integration
 
-### TASK 2.1 — Model canonical de date (SignalRecord, Recording)
+### TASK 2.1 — Canonical Data Model (SignalRecord, Recording)
+
 **Priority:** P0 | **Dependencies:** Phase 1.5 Gate | **Blocks:** 2.2–2.5
 
 **Implementation Steps:**
-1. Definește `SignalRecord`/`Recording` (Pydantic + SQLAlchemy) cu câmpurile din blueprint secțiunea 25: id, sampling_rate, channel, values (referință la fișier, nu în DB), machine_id/operating_condition, label.
-2. Creează schema SQLite (`datasets`, `signals`, `signal_windows`).
+
+1. Define `SignalRecord` / `Recording` (Pydantic + SQLAlchemy) with the fields from section 25 of the blueprint: id, sampling_rate, channel, values (file reference, not stored in the DB), machine_id/operating_condition, label.
+
+2. Create the SQLite schema (`datasets`, `signals`, `signal_windows`).
 
 **Acceptance Criteria:**
-- [ ] AC1: Modelul validează respingerea unui sampling_rate ≤ 0.
-- [ ] AC2: Modelul validează respingerea unui label necunoscut (enum strict, nu string liber).
 
-**Testing:** teste unitare Pydantic pentru validare (valori valide/invalide).
+* [ ] AC1: The model rejects a `sampling_rate ≤ 0`.
 
-**Definition of Done:** modele definite, migrate, testate.
+* [ ] AC2: The model rejects an unknown label (strict enum, not a free-form string).
+
+**Testing:** Pydantic unit tests for validation (valid/invalid values).
+
+**Definition of Done:** Models defined, migrated, and tested.
 
 **Files/Modules Expected:** `backend/app/models/signal.py`, `backend/app/core/database.py`.
 
 ---
 
-### TASK 2.2 — Dataset loader (bazat pe rezultatul auditului)
+### TASK 2.2 — Dataset Loader (Based on Audit Results)
+
 **Priority:** P0 | **Dependencies:** 2.1, 1.5.9 | **Blocks:** 2.4
 
 **Implementation Steps:**
-1. Implementează `loader.py` care citește fișierele conform structurii reale confirmate în audit (nu presupusă).
-2. Populează modelele `Recording`/`SignalRecord` din fiecare fișier.
+
+1. Implement `loader.py` that reads files according to the actual structure confirmed during the audit (not an assumed structure).
+
+2. Populate the `Recording` / `SignalRecord` models from each file.
 
 **Acceptance Criteria:**
-- [ ] AC1: Given `split_manifest.json` din task 1.5.7, when rulez loader-ul, then fiecare recording e etichetat corect cu split-ul (train/val/test) alocat.
-- [ ] AC2: Loader-ul respinge explicit un fișier care nu respectă structura confirmată în audit (nu îl ignoră silențios).
 
-**Testing:** test de integrare pe un subset mic real (2-3 fișiere per split).
+* [ ] AC1: Given the `split_manifest.json` from Task 1.5.7, when the loader is executed, then every recording is correctly assigned the split (`train`/`val`/`test`) allocated to it.
 
-**Definition of Done:** loader funcțional, testat pe date reale.
+* [ ] AC2: The loader explicitly rejects a file that does not comply with the structure confirmed in the audit (it must not silently ignore it).
+
+**Testing:** Integration test on a small real subset (2–3 files per split).
+
+**Definition of Done:** Loader functional and tested on real data.
 
 **Files/Modules Expected:** `backend/app/datasets/loader.py`, `backend/tests/dataset/test_loader.py`.
 
 ---
 
-### TASK 2.3 — Validatori dataset (sampling rate, canale, shape)
+### TASK 2.3 — Dataset Validators (Sampling Rate, Channels, Shape)
+
 **Priority:** P0 | **Dependencies:** 2.1
 
 **Implementation Steps:**
-1. Implementează validări: sampling rate consistent cu ce a confirmat auditul, număr de canale așteptat, lungime minimă semnal.
+
+1. Implement validation for: sampling rate consistent with the audit findings, expected number of channels, and minimum signal length.
 
 **Acceptance Criteria:**
-- [ ] AC1: Given un fișier cu sampling rate diferit de cel confirmat în audit, when e încărcat, then loader-ul aruncă o eroare explicită, nu îl procesează silențios.
 
-**Testing:** teste unitare cu fixture-uri de fișiere valide/invalide.
+* [ ] AC1: Given a file with a sampling rate different from the one confirmed in the audit, when it is loaded, then the loader raises an explicit error and does not silently process it.
 
-**Definition of Done:** validatori impl., testați.
+**Testing:** Unit tests with valid/invalid file fixtures.
+
+**Definition of Done:** Validators implemented and tested.
 
 **Files/Modules Expected:** `backend/app/datasets/validators.py`.
 
 ---
 
-### TASK 2.4 — Windowing (segmentare semnal) cu respectarea split-ului
+### TASK 2.4 — Windowing (Signal Segmentation) with Split Preservation
+
 **Priority:** P0 | **Dependencies:** 2.2 | **Blocks:** Phase 3, 5, 6, 7
 
 **Implementation Steps:**
-1. Implementează funcție de windowing (window_size, overlap configurabile) care operează **în interiorul** unui singur recording, niciodată peste graniță de recording.
-2. Ferestrele moștenesc split-ul recording-ului sursă.
+
+1. Implement a windowing function (`window_size`, `overlap` configurable) that operates **within** a single recording and never crosses a recording boundary.
+
+2. Windows inherit the split of their source recording.
 
 **Acceptance Criteria:**
-- [ ] AC1 (CRITIC): Given două recordinguri alocate la split-uri diferite, when generez ferestre, then nicio fereastră nu conține date din ambele recordinguri.
-- [ ] AC2: Overlap-ul configurat (ex. 50%) produce numărul așteptat de ferestre pentru o lungime de semnal cunoscută (verificat matematic).
 
-**Testing:** test unitar dedicat exact pentru AC1 (cel mai important test de leakage din tot proiectul), plus test pentru numărul de ferestre generate.
+* [ ] AC1 (CRITICAL): Given two recordings assigned to different splits, when windows are generated, then no window contains data from both recordings.
 
-**Definition of Done:** windowing implementat, testul de leakage trece explicit.
+* [ ] AC2: The configured overlap (e.g. 50%) produces the expected number of windows for a known signal length (mathematically verified).
+
+**Testing:** Dedicated unit test specifically for AC1 (the most important leakage test in the entire project), plus a test for the number of generated windows.
+
+**Definition of Done:** Windowing implemented, with the leakage test explicitly passing.
 
 **Files/Modules Expected:** `backend/app/signal_processing/windowing.py`, `backend/tests/signal_processing/test_windowing.py`.
 
 ---
 
-### TASK 2.5 — Teste de integrare dataset end-to-end
+### TASK 2.5 — End-to-End Dataset Integration Tests
+
 **Priority:** P1 | **Dependencies:** 2.2, 2.3, 2.4
 
 **Acceptance Criteria:**
-- [ ] AC1: Pipeline complet `fișier → loader → validare → windowing` rulează pe subsetul real fără erori.
-- [ ] AC2: Numărul total de ferestre per split e raportat și rezonabil (nu zero, nu dezechilibrat extrem fără explicație).
 
-**Definition of Done:** test de integrare verde pe date reale.
+* [ ] AC1: The complete `file → loader → validation → windowing` pipeline runs on the real subset without errors.
+
+* [ ] AC2: The total number of windows per split is reported and reasonable (not zero and not extremely imbalanced without explanation).
+
+**Definition of Done:** Integration test passes on real data.
 
 **Files/Modules Expected:** `backend/tests/dataset/test_integration.py`.
 
@@ -423,43 +537,55 @@
 
 ## PHASE 3 — Signal Processing (Preprocessing + Filtering)
 
-### TASK 3.1 — Preprocessing: detrending, normalization, standardization
+### TASK 3.1 — Preprocessing: Detrending, Normalization, Standardization
+
 **Priority:** P0 | **Dependencies:** 2.4 | **Blocks:** 3.2, 4.x, 5.x
 
-**Notă de arhitectură (evită confuzia cu TASK 5.4):** acest task normalizează/standardizează **semnalul brut** (per fereastră, înainte de filtrare/FFT), nu feature vectors. E un pas separat, cu scop diferit, de scaling-ul de features din TASK 5.4 (care rulează pe ieșirea extractorului, nu pe semnal). Cele două nu trebuie confundate sau aplicate redundant una peste alta.
+**Architecture Note (avoids confusion with TASK 5.4):** This task normalizes/standardizes the **raw signal** (per window, before filtering/FFT), not feature vectors. It is a separate step with a different purpose from feature scaling in TASK 5.4 (which operates on extractor output rather than the signal). The two must not be confused or redundantly applied on top of each other.
 
 **Implementation Steps:**
-1. Implementează `detrend()` (scipy.signal.detrend, liniar).
-2. Implementează `normalize()` (min-max) și `standardize()` (z-score), cu parametri fit-uiți **doar pe train** (per decizia din blueprint secțiunea 8).
+
+1. Implement `detrend()` (`scipy.signal.detrend`, linear).
+
+2. Implement `normalize()` (min-max) and `standardize()` (z-score), with parameters fit **only on the training set** (according to the decision in section 8 of the blueprint).
 
 **Acceptance Criteria:**
-- [ ] AC1: Given un semnal cu trend liniar cunoscut adăugat sintetic, when aplic detrend, then trendul rezidual e sub o toleranță definită (ex. panta reziduală < 1e-3).
-- [ ] AC2: Given parametrii de standardizare calculați pe train, when aplicați pe test, then media rezultată pe test NU e neapărat 0 (semn că nu s-a refăcut fit pe test — verificare explicită anti-leakage).
+
+* [ ] AC1: Given a signal with a known synthetic linear trend added, when detrending is applied, then the residual trend remains below a defined tolerance (e.g. residual slope < 1e-3).
+
+* [ ] AC2: Given standardization parameters calculated on the training set, when they are applied to the test set, then the resulting test mean is NOT necessarily 0 (explicit verification that the scaler was not refit on the test set — anti-leakage check).
 
 **Testing:** `backend/tests/signal_processing/test_preprocessing.py`.
 
-**Definition of Done:** funcții implementate, testate, fără fit pe test/val.
+**Definition of Done:** Functions implemented and tested, with no fitting on test/validation data.
 
 **Files/Modules Expected:** `backend/app/signal_processing/preprocessing.py`.
 
 ---
 
-### TASK 3.2 — Filtre Butterworth (low-pass, high-pass, band-pass) + filtfilt
+### TASK 3.2 — Butterworth Filters (Low-Pass, High-Pass, Band-Pass) + filtfilt
+
 **Priority:** P0 | **Dependencies:** 3.1 | **Blocks:** 4.x
 
 **Implementation Steps:**
-1. Implementează `butter_filter(signal, cutoff, fs, order, btype)` folosind `scipy.signal.butter` + `filtfilt` (zero-phase).
-2. Parametrii (cutoff, order) sunt argumente, nu constante hard-codate.
-3. Validare: cutoff < Nyquist (fs/2), altfel eroare explicită.
+
+1. Implement `butter_filter(signal, cutoff, fs, order, btype)` using `scipy.signal.butter` + `filtfilt` (zero-phase).
+
+2. Parameters (`cutoff`, `order`) must be arguments, not hard-coded constants.
+
+3. Validation: `cutoff < Nyquist (fs/2)`, otherwise raise an explicit error.
 
 **Acceptance Criteria:**
-- [ ] AC1: Given un semnal sintetic = sumă de 10 Hz + 200 Hz, when aplic low-pass cu cutoff 50 Hz, then componenta de 200 Hz e atenuată cu minim 20 dB (verificat prin FFT pe semnalul filtrat).
-- [ ] AC2: Given cutoff ≥ Nyquist, when apelez funcția, then se ridică o eroare explicită, nu un rezultat silențios greșit.
-- [ ] AC3: Filtrarea cu `filtfilt` nu introduce shift de fază (verificat: poziția unui vârf cunoscut rămâne la același index ±1 eșantion).
 
-**Testing:** `backend/tests/signal_processing/test_filtering.py` cu semnale sintetice multi-componentă.
+* [ ] AC1: Given a synthetic signal = 10 Hz + 200 Hz components, when a low-pass filter with a 50 Hz cutoff is applied, then the 200 Hz component is attenuated by at least 20 dB (verified using FFT on the filtered signal).
 
-**Definition of Done:** toate cele 3 tipuri de filtru implementate și testate cu AC măsurabile.
+* [ ] AC2: Given `cutoff ≥ Nyquist`, when the function is called, then an explicit error is raised rather than silently producing an incorrect result.
+
+* [ ] AC3: Filtering with `filtfilt` does not introduce phase shift (verified by checking that the position of a known peak remains at the same index ±1 sample).
+
+**Testing:** `backend/tests/signal_processing/test_filtering.py` with synthetic multi-component signals.
+
+**Definition of Done:** All three filter types implemented and tested with measurable acceptance criteria.
 
 **Files/Modules Expected:** `backend/app/signal_processing/filtering.py`.
 
@@ -467,55 +593,67 @@
 
 ## PHASE 4 — Spectral Analysis
 
-### TASK 4.1 — FFT + axă de frecvență + magnitude spectrum
+### TASK 4.1 — FFT + Frequency Axis + Magnitude Spectrum
+
 **Priority:** P0 | **Dependencies:** 3.1 | **Blocks:** 4.3, 5.2, 9.x
 
 **Implementation Steps:**
-1. Implementează `compute_fft(signal, fs)` → returnează frequencies, magnitude, folosind `numpy.fft.rfft` (semnal real) + `numpy.fft.rfftfreq`.
-2. Implementează `dominant_frequency(freqs, magnitude)`.
+
+1. Implement `compute_fft(signal, fs)` → returns frequencies and magnitude, using `numpy.fft.rfft` (real-valued signal) + `numpy.fft.rfftfreq`.
+
+2. Implement `dominant_frequency(freqs, magnitude)`.
 
 **Acceptance Criteria:**
-- [ ] AC1: Given un semnal sinusoidal sintetic de 50 Hz eșantionat la 1000 Hz, when calculez FFT, then frecvența dominantă detectată e în ±1 Hz de 50 Hz.
-- [ ] AC2: Given fs = 1000 Hz, frecvența maximă din axa returnată nu depășește Nyquist (500 Hz).
+
+* [ ] AC1: Given a synthetic 50 Hz sinusoidal signal sampled at 1000 Hz, when FFT is calculated, then the detected dominant frequency is within ±1 Hz of 50 Hz.
+
+* [ ] AC2: Given `fs = 1000 Hz`, the maximum frequency in the returned frequency axis does not exceed the Nyquist frequency (500 Hz).
 
 **Testing:** `backend/tests/signal_processing/test_fft.py`.
 
-**Definition of Done:** FFT + dominant frequency implementate, testate pe semnal sintetic cunoscut.
+**Definition of Done:** FFT + dominant frequency implemented and tested on a known synthetic signal.
 
 **Files/Modules Expected:** `backend/app/signal_processing/fft.py`.
 
 ---
 
 ### TASK 4.2 — Welch PSD
+
 **Priority:** P0 | **Dependencies:** 4.1 | **Blocks:** 4.3, 5.2
 
 **Implementation Steps:**
-1. Implementează wrapper peste `scipy.signal.welch`, cu `nperseg`/`noverlap` configurabile.
+
+1. Implement a wrapper around `scipy.signal.welch`, with configurable `nperseg` / `noverlap`.
 
 **Acceptance Criteria:**
-- [ ] AC1: Given același semnal sintetic de 50 Hz cu zgomot alb adăugat, when calculez Welch PSD, then vârful dominant rămâne la 50 Hz ±1 Hz, cu varianță vizibil mai mică decât FFT simplu pe același semnal zgomotos (comparație explicită în test).
+
+* [ ] AC1: Given the same synthetic 50 Hz signal with added white noise, when Welch PSD is calculated, then the dominant peak remains at 50 Hz ±1 Hz, with visibly lower variance than a simple FFT on the same noisy signal (explicit comparison in the test).
 
 **Testing:** `backend/tests/signal_processing/test_psd.py`.
 
-**Definition of Done:** Welch PSD implementat, comparat cu FFT simplu în test.
+**Definition of Done:** Welch PSD implemented and compared against a simple FFT in a test.
 
 **Files/Modules Expected:** `backend/app/signal_processing/psd.py`.
 
 ---
 
-### TASK 4.3 — STFT / Spectrogramă
-**Priority:** P0 | **Dependencies:** 4.1 | **Blocks:** 12.x (PCA/vizualizare later)
+### TASK 4.3 — STFT / Spectrogram
+
+**Priority:** P0 | **Dependencies:** 4.1 | **Blocks:** 12.x (PCA/visualization later)
 
 **Implementation Steps:**
-1. Implementează wrapper peste `scipy.signal.spectrogram`, cu window size și hop length configurabile.
+
+1. Implement a wrapper around `scipy.signal.spectrogram`, with configurable window size and hop length.
 
 **Acceptance Criteria:**
-- [ ] AC1: Given un semnal sintetic cu frecvență care se schimbă la jumătatea duratei (50 Hz → 150 Hz), when calculez spectrograma, then energia dominantă se deplasează vizibil de la 50 la 150 Hz între prima și a doua jumătate a axei de timp (verificat prin index-ul frecvenței cu magnitudine maximă per coloană temporală).
-- [ ] AC2: Mărirea window size-ului crește rezoluția în frecvență și scade rezoluția în timp (verificat comparând lățimea benzii dominante pentru 2 configurații diferite).
+
+* [ ] AC1: Given a synthetic signal whose frequency changes halfway through the duration (50 Hz → 150 Hz), when the spectrogram is calculated, then the dominant energy visibly shifts from 50 Hz to 150 Hz between the first and second halves of the time axis (verified using the frequency index with maximum magnitude per time column).
+
+* [ ] AC2: Increasing the window size increases frequency resolution and decreases time resolution (verified by comparing the dominant-band width for two different configurations).
 
 **Testing:** `backend/tests/signal_processing/test_spectrogram.py`.
 
-**Definition of Done:** STFT implementat, trade-off-ul rezoluție timp/frecvență verificat printr-un test explicit.
+**Definition of Done:** STFT implemented, with the time/frequency resolution trade-off verified through an explicit test.
 
 **Files/Modules Expected:** `backend/app/signal_processing/spectrogram.py`.
 
@@ -523,97 +661,120 @@
 
 ## PHASE 5 — Feature Engineering
 
-### TASK 5.1 — Feature registry + time-domain features
+### TASK 5.1 — Feature Registry + Time-Domain Features
+
 **Priority:** P0 | **Dependencies:** 3.1 | **Blocks:** 5.3, 6.x, 7.x, 9.x
 
-**Description:** Implementează mean, std, variance, RMS, peak, peak-to-peak, skewness, kurtosis, crest factor ca funcții pure înregistrate într-un registry extensibil.
+**Description:** Implement mean, standard deviation, variance, RMS, peak, peak-to-peak, skewness, kurtosis, and crest factor as pure functions registered in an extensible registry.
 
 **Implementation Steps:**
-1. `features/time_domain.py` — o funcție per feature, semnătură uniformă `f(signal: np.ndarray) -> float`.
-2. `features/registry.py` — dicționar `{nume: funcție}`, extensibil prin adăugare de intrare, fără modificarea codului existent.
 
-**Acceptance Criteria (per feature, verificate cu semnal sintetic cu proprietăți cunoscute):**
-- [ ] AC1: RMS pe un semnal sinusoidal de amplitudine A e ≈ A/√2 (±1% toleranță).
-- [ ] AC2: Kurtosis pe zgomot gaussian pur e ≈ 3 (definiție non-excess) sau ≈0 (excess kurtosis — se specifică explicit convenția folosită), ±toleranță documentată.
-- [ ] AC3: Crest factor pe un semnal cu vârfuri rare și ascuțite e vizibil mai mare decât pe un sinusoidal pur de aceeași putere RMS.
-- [ ] AC4: Fiecare feature are un test dedicat cu input cunoscut și output așteptat calculat analitic.
+1. `features/time_domain.py` — one function per feature, using the uniform signature `f(signal: np.ndarray) -> float`.
 
-**Testing:** `backend/tests/features/test_time_domain.py` — un test per feature.
+2. `features/registry.py` — dictionary `{name: function}`, extensible by adding an entry without modifying existing code.
 
-**Definition of Done:** toate cele 9 features implementate, fiecare cu test individual verde, documentate (formulă + interpretare fizică + relevanță pentru fault) în docstring.
+**Acceptance Criteria (per feature, verified using synthetic signals with known properties):**
+
+* [ ] AC1: RMS on a sinusoidal signal with amplitude A is approximately A/√2 (±1% tolerance).
+
+* [ ] AC2: Kurtosis on pure Gaussian noise is approximately 3 (non-excess definition) or approximately 0 (excess kurtosis) — the convention used must be explicitly specified, with a documented tolerance.
+
+* [ ] AC3: Crest factor on a signal with rare, sharp peaks is visibly higher than on a pure sinusoid with the same RMS power.
+
+* [ ] AC4: Each feature has a dedicated test using known input and analytically calculated expected output.
+
+**Testing:** `backend/tests/features/test_time_domain.py` — one test per feature.
+
+**Definition of Done:** All 9 features implemented, each with an individual passing test, and documented (formula + physical interpretation + fault relevance) in the docstring.
 
 **Files/Modules Expected:** `backend/app/features/time_domain.py`, `backend/app/features/registry.py`.
 
 ---
 
-### TASK 5.2 — Frequency-domain features
+### TASK 5.2 — Frequency-Domain Features
+
 **Priority:** P0 | **Dependencies:** 4.1, 4.2, 5.1 | **Blocks:** 5.3
 
-**Description:** dominant frequency, spectral centroid, spectral bandwidth, spectral energy, spectral entropy, energie pe benzi de frecvență.
+**Description:** Implement dominant frequency, spectral centroid, spectral bandwidth, spectral energy, spectral entropy, and energy in frequency bands.
 
 **Acceptance Criteria:**
-- [ ] AC1: Given un semnal sinusoidal pur, spectral entropy e apropiată de minim (semnal concentrat pe o singură frecvență), comparativ cu zgomot alb unde entropy e apropiată de maxim — testat comparativ explicit.
-- [ ] AC2: Spectral centroid pe un semnal cu energie concentrată la o frecvență cunoscută X e ≈ X.
-- [ ] AC3: Fiecare feature are test dedicat cu semnal sintetic.
+
+* [ ] AC1: Given a pure sinusoidal signal, spectral entropy is close to its minimum (signal concentrated around one frequency), compared with white noise where entropy is close to its maximum — explicitly tested as a comparison.
+
+* [ ] AC2: Spectral centroid on a signal with energy concentrated at a known frequency X is approximately X.
+
+* [ ] AC3: Each feature has a dedicated test using a synthetic signal.
 
 **Testing:** `backend/tests/features/test_frequency_domain.py`.
 
-**Definition of Done:** toate cele 6 features implementate și testate individual.
+**Definition of Done:** All 6 features implemented and individually tested.
 
 **Files/Modules Expected:** `backend/app/features/frequency_domain.py`.
 
 ---
 
-### TASK 5.3 — Feature extractor complet (matrice de features)
+### TASK 5.3 — Complete Feature Extractor (Feature Matrix)
+
 **Priority:** P0 | **Dependencies:** 5.1, 5.2 | **Blocks:** Phase 6, 7, 9
 
 **Implementation Steps:**
-1. `extractor.py` — primește o fereastră de semnal, rulează toate funcțiile din registry, returnează un vector/rând de features cu nume de coloane consistente.
-2. Aplicat pe toate ferestrele → matrice de features (train/val/test separat).
+
+1. `extractor.py` — receives a signal window, runs all functions from the registry, and returns a feature vector/row with consistent column names.
+
+2. Apply it to all windows → feature matrix (train/validation/test separately).
 
 **Acceptance Criteria:**
-- [ ] AC1: Given aceeași fereastră de semnal, rulată de două ori, output-ul e identic (determinism, fără randomness ascuns).
-- [ ] AC2: Matricea de features pentru split-ul train nu conține NaN/Inf (verificat explicit).
-- [ ] AC3: Numărul de coloane = numărul de features din registry (verificat automat, nu hard-codat).
+
+* [ ] AC1: Given the same signal window, when processed twice, the output is identical (deterministic, with no hidden randomness).
+
+* [ ] AC2: The feature matrix for the training split contains no NaN/Inf values (explicitly verified).
+
+* [ ] AC3: The number of columns = the number of features in the registry (automatically verified, not hard-coded).
 
 **Testing:** `backend/tests/features/test_extractor.py`.
 
-**Definition of Done:** extractor complet, testat pe date reale (subset).
+**Definition of Done:** Complete extractor, tested on real data (subset).
 
 **Files/Modules Expected:** `backend/app/features/extractor.py`.
 
 ---
 
-### TASK 5.4 — Feature Scaling (componentă comună, NU specifică unui model)
+### TASK 5.4 — Feature Scaling (Shared Component, NOT Model-Specific)
+
 **Priority:** P0 | **Dependencies:** 5.3 | **Blocks:** 6.2, 7.2, 9.x
 
-**Description:** Distincție importantă de arhitectură, ca să nu se aplice scaling de două ori sau să se creeze o dependență ascunsă între modele:
+**Description:** Important architectural distinction to prevent double scaling or hidden dependencies between models:
 
-```
-Signal preprocessing (Phase 3)         Feature scaling (AICI, Phase 5)
-   detrend                                StandardScaler pe FEATURE VECTORS
-   normalize/standardize SEMNALUL RAW      (rezultatul din TASK 5.3),
-   (opțional, per fereastră)               fit doar pe train
-        │                                        │
-        ▼                                        ▼
-   folosit pentru filtrare/FFT/PSD         folosit ca INPUT direct
-   (Phase 3-4), NU e același pas cu        pentru Isolation Forest (6.2)
-   scaling-ul de mai jos                   ȘI Autoencoder (7.2)
+```text
+Signal preprocessing (Phase 3)        Feature scaling (HERE, Phase 5)
+
+    detrend                              StandardScaler on FEATURE VECTORS
+    normalize/standardize RAW SIGNAL    (output from TASK 5.3),
+    (optional, per window)                fit only on train
+             │                                  │
+             ▼                                  ▼
+    used for filtering/FFT/PSD          used as DIRECT INPUT
+    (Phase 3-4), NOT the same step      for Isolation Forest (6.2)
+    as the scaling below                 AND Autoencoder (7.2)
 ```
 
-Scaler-ul e o componentă **comună**, consumată identic de ambele modele — nu trăiește în `app/ml/isolation_forest.py`, ca Autoencoder-ul să nu depindă accidental de codul specific IF.
+The scaler is a **shared** component consumed identically by both models — it must not live inside `app/ml/isolation_forest.py`, otherwise the Autoencoder could accidentally become dependent on IF-specific code.
 
 **Implementation Steps:**
+
 1. `app/ml/scaling.py` — `fit_scaler(train_features) -> scaler`, `apply_scaler(scaler, features) -> scaled_features`.
-2. Scaler-ul fit-uit o singură dată (pe train), salvat ca artifact separat (`scaler_v1.pkl`), referit prin `scaler_artifact` în Model Artifact Contract (TASK 6.5) de către **ambele** modele.
+
+2. Fit the scaler once (on train), save it as a separate artifact (`scaler_v1.pkl`), and reference it through `scaler_artifact` in the Model Artifact Contract (TASK 6.5) for **both** models.
 
 **Acceptance Criteria:**
-- [ ] AC1: `StandardScaler` (sau echivalent) e fit-uit exclusiv pe train, aplicat (transform) pe val/test — verificat printr-un test care ar eșua dacă s-ar face fit pe tot dataset-ul.
-- [ ] AC2: Codul din `app/ml/isolation_forest.py` și `app/ml/autoencoder.py`/`training.py` importă **același** modul `scaling.py`, nu implementări duplicate.
+
+* [ ] AC1: `StandardScaler` (or equivalent) is fit exclusively on the training set and applied (`transform`) to validation/test — verified through a test that would fail if the scaler were fit on the entire dataset.
+
+* [ ] AC2: Code in `app/ml/isolation_forest.py` and `app/ml/autoencoder.py` / `training.py` imports the **same** `scaling.py` module rather than using duplicated implementations.
 
 **Testing:** `backend/tests/ml/test_scaling.py`.
 
-**Definition of Done:** scaler implementat o singură dată, salvat ca artifact reutilizabil, consumat identic de Phase 6 și Phase 7.
+**Definition of Done:** Scaler implemented exactly once, saved as a reusable artifact, and consumed identically by Phase 6 and Phase 7.
 
 **Files/Modules Expected:** `backend/app/ml/scaling.py`.
 
@@ -621,66 +782,80 @@ Scaler-ul e o componentă **comună**, consumată identic de ambele modele — n
 
 # EPIC 3 — Machine Learning & Deep Learning
 
+
 ## PHASE 6 — Isolation Forest Baseline
 
-### TASK 6.2 — Antrenare Isolation Forest (doar pe date normale)
+### TASK 6.2 — Train Isolation Forest (normal data only)
+
 **Priority:** P0 | **Dependencies:** 5.4 | **Blocks:** 6.3, 8.x, 9.x
 
-**Description:** Modelul se antrenează exclusiv pe ferestre etichetate "normal" din split-ul train (per metodologia secțiunii 5 blueprint — antrenare unsupervised/semi-supervised).
+**Description:** The model is trained exclusively on windows labeled "normal" from the train split (according to the methodology defined in Section 5 of the blueprint — unsupervised/semi-supervised training).
 
 **Acceptance Criteria:**
-- [ ] AC1 (CRITIC): Given setul de train, when filtrez datele de antrenare, then niciun exemplu cu label diferit de "normal" nu ajunge în `.fit()` — verificat printr-un test explicit care numără label-urile din setul de antrenare efectiv folosit.
-- [ ] AC2: Modelul antrenat produce scoruri (`decision_function`) pentru orice fereastră nouă, fără erori de shape.
-- [ ] AC3: Seed fixat → antrenări repetate produc scoruri identice (reproducibilitate).
+
+* [ ] AC1 (CRITICAL): Given the train set, when filtering the training data, then no example with a label other than "normal" reaches `.fit()` — verified through an explicit test that counts the labels in the actual training set used.
+
+* [ ] AC2: The trained model produces scores (`decision_function`) for any new window without shape errors.
+
+* [ ] AC3: Fixed seed → repeated training runs produce identical scores (reproducibility).
 
 **Testing:** `backend/tests/ml/test_isolation_forest_training.py`.
 
-**Definition of Done:** model antrenat, salvat, testul AC1 (anti-leakage de labels) trece explicit.
+**Definition of Done:** Model trained and saved, with the AC1 test (label anti-leakage) explicitly passing.
 
 **Files/Modules Expected:** `backend/app/ml/isolation_forest.py`.
 
 ---
 
-### TASK 6.3 — Scoring, normalizare scor, threshold calibration (metodă configurabilă)
+### TASK 6.3 — Scoring, Score Normalization, Threshold Calibration (Configurable Method)
+
 **Priority:** P0 | **Dependencies:** 6.2 | **Blocks:** 8.x, 6.5
 
 **Implementation Steps:**
-1. Normalizează scorul brut la [0,1] folosind distribuția scorurilor pe **validation set**.
-2. Implementează calibrarea threshold-ului ca **strategie selectabilă**, nu valoare fixă: `threshold_method` poate fi `"percentile"` (parametru `percentile_value`, ex. 95, configurabil) sau `"validation_f1_optimal"` (alege pragul care maximizează F1 pe validation set, dacă există exemple de fault în validation). Metoda implicită și motivul alegerii ei se documentează explicit, nu se prezintă ca "adevăr universal".
+
+1. Normalize the raw score to [0,1] using the score distribution from the **validation set**.
+
+2. Implement threshold calibration as a **selectable strategy**, not a fixed value: `threshold_method` can be `"percentile"` (configurable `percentile_value` parameter, e.g. 95) or `"validation_f1_optimal"` (select the threshold that maximizes F1 on the validation set, if fault examples exist in validation). The default method and the reasoning behind its selection must be explicitly documented and must not be presented as a "universal truth".
 
 **Acceptance Criteria:**
-- [ ] AC1: Threshold-ul e calculat din validation set, nu din test set (verificat prin cod — funcția de calibrare nu primește niciodată date de test ca input).
-- [ ] AC2: Scorul normalizat e mereu în [0,1] pentru orice input (verificat cu date extreme sintetice).
-- [ ] AC3: Funcția de calibrare acceptă parametrul `threshold_method` și produce rezultate diferite, verificabile, pentru cele două metode implementate (testat explicit, nu presupus).
+
+* [ ] AC1: The threshold is calculated from the validation set, not the test set (verified through code — the calibration function never receives test data as input).
+
+* [ ] AC2: The normalized score is always in [0,1] for any input (verified using extreme synthetic data).
+
+* [ ] AC3: The calibration function accepts the `threshold_method` parameter and produces different, verifiable results for the two implemented methods (explicitly tested, not assumed).
 
 **Testing:** `backend/tests/ml/test_scoring.py`.
 
-**Definition of Done:** funcție de scoring + threshold calibrat prin metoda aleasă, salvate ca parte a artifact-ului modelului (vezi TASK 6.5).
+**Definition of Done:** Scoring function + threshold calibrated using the selected method, saved as part of the model artifact (see TASK 6.5).
 
 **Files/Modules Expected:** `backend/app/ml/scoring.py`.
 
 ---
 
-### TASK 6.4 — Persistență model (save/load) + inference
+### TASK 6.4 — Model Persistence (Save/Load) + Inference
+
 **Priority:** P0 | **Dependencies:** 6.2, 6.3 | **Blocks:** 10.x
 
 **Acceptance Criteria:**
-- [ ] AC1: Given un model salvat, when e reîncărcat, then predicțiile pe același input sunt identice cu cele dinainte de salvare (bit-exact sau în toleranță numerică documentată).
+
+* [ ] AC1: Given a saved model, when it is reloaded, then predictions on the same input are identical to those produced before saving (bit-exact or within a documented numerical tolerance).
 
 **Testing:** `backend/tests/ml/test_persistence.py`.
 
-**Definition of Done:** save/load funcțional, testat.
+**Definition of Done:** Save/load functionality implemented and tested.
 
 **Files/Modules Expected:** `backend/app/ml/inference.py`, `models/isolation_forest_v1.pkl`.
 
 ---
 
-### TASK 6.5 — Model Artifact Contract (metadata standard, comun IF + AE)
-**Priority:** P0 | **Dependencies:** 6.3, 6.4 | **Blocks:** 7.3 (reutilizează același contract), 9.x, 10.5
+### TASK 6.5 — Model Artifact Contract (Standard Metadata, Shared by IF + AE)
 
-**User Story:** Ca ML engineer, vreau ca fiecare model salvat să fie însoțit de un contract de metadata explicit, astfel încât orice predicție ulterioară (sau audit) să poată fi trasată exact la configurația care a produs modelul, fără presupuneri.
+**Priority:** P0 | **Dependencies:** 6.3, 6.4 | **Blocks:** 7.3 (reuses the same contract), 9.x, 10.5
 
-**Description:** Fiecare artifact de model (`.pkl` pentru Isolation Forest, `.pt` pentru Autoencoder — vezi Phase 7) e însoțit de un fișier JSON sidecar cu aceeași bază de nume, conținând:
+**User Story:** As an ML engineer, I want every saved model to be accompanied by an explicit metadata contract so that any subsequent prediction (or audit) can be traced exactly to the configuration that produced the model, without assumptions.
+
+**Description:** Each model artifact (`.pkl` for Isolation Forest, `.pt` for Autoencoder — see Phase 7) is accompanied by a JSON sidecar file with the same base name, containing:
 
 ```json
 {
@@ -701,125 +876,160 @@ Scaler-ul e o componentă **comună**, consumată identic de ambele modele — n
 ```
 
 **Implementation Steps:**
-1. Implementează `app/ml/model_artifact.py` cu o funcție `save_model_artifact(model, metadata: ModelArtifactMetadata, path)` și `load_model_artifact(path) -> (model, metadata)`.
-2. `dataset_hash` și `split_manifest_hash` se calculează (ex. SHA-256 pe conținutul `split_manifest.json` din TASK 1.5.7) — nu inventate, nu omise.
-3. `score_direction` există explicit pentru că Isolation Forest (`decision_function`, scor mai mic = mai anormal) și Autoencoder (reconstruction error, scor mai mare = mai anormal) au convenții native diferite — contractul normalizează asta pentru consumatorii din Phase 10/11.
+
+1. Implement `app/ml/model_artifact.py` with a function `save_model_artifact(model, metadata: ModelArtifactMetadata, path)` and `load_model_artifact(path) -> (model, metadata)`.
+
+2. `dataset_hash` and `split_manifest_hash` must be calculated (e.g. SHA-256 over the contents of `split_manifest.json` from TASK 1.5.7) — never invented and never omitted.
+
+3. `score_direction` exists explicitly because Isolation Forest (`decision_function`, lower score = more anomalous) and Autoencoder (reconstruction error, higher score = more anomalous) have different native conventions — the contract normalizes this for consumers in Phase 10/11.
 
 **Acceptance Criteria:**
-- [ ] AC1: Given un model salvat, when citesc fișierul JSON sidecar, then toate câmpurile din schema de mai sus sunt prezente și nenule.
-- [ ] AC2: `dataset_hash`/`split_manifest_hash` sunt calculate real din fișierul sursă (verificat: schimbarea unui singur caracter în `split_manifest.json` schimbă hash-ul).
-- [ ] AC3: Given două modele antrenate cu configurații diferite (ex. threshold_method diferit), metadata reflectă corect diferența — nu e un artefact static copiat.
+
+* [ ] AC1: Given a saved model, when reading the JSON sidecar file, then all fields from the schema above are present and non-null.
+
+* [ ] AC2: `dataset_hash` / `split_manifest_hash` are calculated from the actual source file (verified: changing a single character in `split_manifest.json` changes the hash).
+
+* [ ] AC3: Given two models trained with different configurations (e.g. different `threshold_method`), the metadata correctly reflects the difference — it is not a static copied artifact.
 
 **Testing:** `backend/tests/ml/test_model_artifact.py`.
 
-**Definition of Done:** contract implementat, aplicat la Isolation Forest (Phase 6) și reutilizat identic la Autoencoder (Phase 7), fără duplicare de schemă.
+**Definition of Done:** Contract implemented, applied to Isolation Forest (Phase 6), and reused identically for Autoencoder (Phase 7), with no duplicated schema.
 
 **Files/Modules Expected:** `backend/app/ml/model_artifact.py`, `backend/tests/ml/test_model_artifact.py`.
 
 ---
 
-## PHASE 7 — Autoencoder (PyTorch, pe feature vectors)
+## PHASE 7 — Autoencoder (PyTorch, on Feature Vectors)
 
-### TASK 7.1 — Arhitectură Encoder/Decoder
+### TASK 7.1 — Encoder/Decoder Architecture
+
 **Priority:** P0 | **Dependencies:** 5.3 | **Blocks:** 7.2
 
 **Implementation Steps:**
-1. Definește `Autoencoder(nn.Module)` — encoder dense (input_dim → hidden → bottleneck), decoder simetric.
-2. Dimensiunile sunt parametri configurabili, nu hard-codate.
+
+1. Define `Autoencoder(nn.Module)` — dense encoder (input_dim → hidden → bottleneck), symmetric decoder.
+
+2. Dimensions must be configurable parameters, not hard-coded.
 
 **Acceptance Criteria:**
-- [ ] AC1: Given un batch de shape `(N, num_features)`, forward pass returnează output de shape identică `(N, num_features)`.
-- [ ] AC2: Numărul de parametri ai rețelei e documentat explicit (verificare că arhitectura rămâne "ușor de explicat", nu exagerat de mare, per blueprint secțiunea 16).
+
+* [ ] AC1: Given a batch with shape `(N, num_features)`, the forward pass returns an output with the identical shape `(N, num_features)`.
+
+* [ ] AC2: The number of network parameters is explicitly documented (verify that the architecture remains "easy to explain" and is not excessively large, according to Section 16 of the blueprint).
 
 **Testing:** `backend/tests/ml/test_autoencoder_architecture.py`.
 
-**Definition of Done:** arhitectură implementată, testată pentru shape.
+**Definition of Done:** Architecture implemented and shape-tested.
 
 **Files/Modules Expected:** `backend/app/ml/autoencoder.py`.
 
 ---
 
-### TASK 7.2 — Training loop + validare + early stopping
+### TASK 7.2 — Training Loop + Validation + Early Stopping
+
 **Priority:** P0 | **Dependencies:** 7.1, 5.4 | **Blocks:** 7.3
 
 **Implementation Steps:**
-1. DataLoader pe feature vectors normalizate (train = doar "normal", per aceeași regulă ca Isolation Forest).
-2. Loss = MSE reconstrucție. Optimizer Adam.
-3. Early stopping pe baza loss-ului de validare.
-4. Seed fixat pentru reproducibilitate.
+
+1. DataLoader over normalized feature vectors (train = "normal" only, following the same rule as Isolation Forest).
+
+2. Loss = reconstruction MSE. Optimizer = Adam.
+
+3. Early stopping based on validation loss.
+
+4. Fixed seed for reproducibility.
 
 **Acceptance Criteria:**
-- [ ] AC1: Loss-ul final de antrenare e semnificativ mai mic decât loss-ul din prima epocă (nu se cere scădere monotonă — loss-ul poate fluctua epocă cu epocă și modelul rămâne complet valid; criteriul greșit ar respinge antrenări perfect normale). Antrenarea converge fără `NaN`/`Inf` la niciun pas.
-- [ ] AC2: Loss-ul de **validare** e urmărit separat de loss-ul de train pe tot parcursul antrenării (nu doar train loss) — condiție pentru ca early stopping (task 7.2) să poată detecta overfitting real, nu doar zgomot pe train.
-- [ ] AC3: Antrenarea nu vede niciodată exemple non-normale (aceeași verificare ca 6.2-AC1).
-- [ ] AC4: Rularea cu același seed produce loss curves identice.
+
+* [ ] AC1: Final training loss is significantly lower than the loss in the first epoch (monotonic decrease is not required — loss may fluctuate from epoch to epoch and the model remains fully valid; the wrong criterion would reject perfectly normal training runs). Training converges without `NaN`/`Inf` at any step.
+
+* [ ] AC2: **Validation** loss is tracked separately from training loss throughout the entire training process (not only training loss) — required so that early stopping can detect real overfitting rather than training noise.
+
+* [ ] AC3: Training never sees non-normal examples (same verification as 6.2-AC1).
+
+* [ ] AC4: Running with the same seed produces identical loss curves.
 
 **Testing:** `backend/tests/ml/test_autoencoder_training.py`.
 
-**Definition of Done:** training loop funcțional, reproductibil, checkpointing implementat.
+**Definition of Done:** Functional, reproducible training loop with checkpointing implemented.
 
 **Files/Modules Expected:** `backend/app/ml/training.py`.
 
 ---
 
-### TASK 7.3 — Reconstruction error + threshold + persistență
+### TASK 7.3 — Reconstruction Error + Threshold + Persistence
+
 **Priority:** P0 | **Dependencies:** 7.2, 6.5 | **Blocks:** 8.x
 
 **Acceptance Criteria:**
-- [ ] AC1: Given date de validare (normale + anomalii cunoscute), reconstruction error mediu pe anomalii e vizibil mai mare decât pe normale (raportat, nu presupus — dacă nu e adevărat, se raportează onest ca rezultat, per regula "nu inventa rezultate").
-- [ ] AC2: Threshold calibrat prin aceeași strategie configurabilă din TASK 6.3 (`percentile` sau `validation_f1_optimal`), pe validation, nu test.
-- [ ] AC3: Model salvat/reîncărcat produce reconstrucții identice.
-- [ ] AC4: Artifact-ul salvat respectă **exact același contract de metadata din TASK 6.5** (`model_type: "autoencoder"`, `score_direction: "higher_is_more_anomalous"`, restul câmpurilor identice ca structură) — nicio schemă separată/duplicată pentru Autoencoder.
+
+* [ ] AC1: Given validation data (known normal + anomaly examples), the mean reconstruction error on anomalies is visibly higher than on normal examples (reported, not assumed — if this is not true, it must be reported honestly, according to the "do not invent results" rule).
+
+* [ ] AC2: Threshold is calibrated using the same configurable strategy from TASK 6.3 (`percentile` or `validation_f1_optimal`), on validation data, not test data.
+
+* [ ] AC3: A saved/reloaded model produces identical reconstructions.
+
+* [ ] AC4: The saved artifact follows **exactly the same metadata contract from TASK 6.5** (`model_type: "autoencoder"`, `score_direction: "higher_is_more_anomalous"`, remaining fields identical in structure) — no separate/duplicated schema for Autoencoder.
 
 **Testing:** `backend/tests/ml/test_autoencoder_inference.py`.
 
-**Definition of Done:** pipeline complet Autoencoder funcțional, testat, salvat.
+**Definition of Done:** Complete Autoencoder pipeline functional, tested, and saved.
 
-**Files/Modules Expected:** `backend/app/ml/inference.py` (extins), `models/autoencoder_v1.pt`.
+**Files/Modules Expected:** `backend/app/ml/inference.py` (extended), `models/autoencoder_v1.pt`.
 
 ---
 
 ## PHASE 8 — Model Evaluation Framework
 
-### TASK 8.1 — Evaluation framework comun (IF + AE pe același test set)
+### TASK 8.1 — Common Evaluation Framework (IF + AE on the Same Test Set)
+
 **Priority:** P0 | **Dependencies:** 6.4, 7.3 | **Blocks:** Phase 9
 
 **Implementation Steps:**
-1. Funcție `evaluate(model, test_features, test_labels) -> metrics dict`, folosită identic pentru ambele modele.
-2. Calculează: precision, recall, F1, ROC-AUC, PR-AUC, confusion matrix, FPR, FNR, timp inference.
+
+1. Implement `evaluate(model, test_features, test_labels) -> metrics dict`, used identically for both models.
+
+2. Calculate: precision, recall, F1, ROC-AUC, PR-AUC, confusion matrix, FPR, FNR, inference time.
 
 **Acceptance Criteria:**
-- [ ] AC1: Given același test set pentru ambele modele, when rulez evaluarea, then ambele folosesc exact aceeași funcție de calcul metrici (verificat prin cod, nu duplicare de logică).
-- [ ] AC2: Toate metricile sunt calculate din predicții reale, nu hard-codate — status explicit `NOT YET MEASURED` până la prima rulare reală.
-- [ ] AC3: Confusion matrix e generată corect pentru cazul binar (normal vs. anomaly agregat) — verificat cu un exemplu de predicții/labels cunoscute manual.
 
-**Testing:** `backend/tests/ml/test_evaluation.py` cu predicții/labels sintetice unde rezultatul corect e calculat manual.
+* [ ] AC1: Given the same test set for both models, when running evaluation, then both use exactly the same metric calculation function (verified through code, with no duplicated logic).
 
-**Definition of Done:** framework comun, testat, aplicat pe ambele modele cu rezultate reale raportate (nu inventate).
+* [ ] AC2: All metrics are calculated from real predictions, not hard-coded — explicit status `NOT YET MEASURED` until the first real run.
+
+* [ ] AC3: The confusion matrix is generated correctly for the binary case (normal vs. aggregated anomaly) — verified using a manually calculated example with known predictions/labels.
+
+**Testing:** `backend/tests/ml/test_evaluation.py` with synthetic predictions/labels where the correct result is calculated manually.
+
+**Definition of Done:** Common evaluation framework implemented and tested, applied to both models with real reported results (not invented).
 
 **Files/Modules Expected:** `backend/app/ml/evaluation.py`.
 
 ---
 
-### TASK 8.2 — Raport comparativ Isolation Forest vs. Autoencoder
+### TASK 8.2 — Comparative Report: Isolation Forest vs. Autoencoder
+
 **Priority:** P0 | **Dependencies:** 8.1
 
 **Acceptance Criteria:**
-- [ ] AC1: Tabelul comparativ conține valori reale măsurate pentru ambele modele, pe același test set.
-- [ ] AC2: Concluzia raportului nu presupune un câștigător înainte de a vedea rezultatele.
 
-**Definition of Done:** `docs/results/isolation_forest_vs_autoencoder.md` generat cu date reale.
+* [ ] AC1: The comparison table contains real measured values for both models on the same test set.
+
+* [ ] AC2: The report conclusion does not assume a winner before seeing the results.
+
+**Definition of Done:** `docs/results/isolation_forest_vs_autoencoder.md` generated with real data.
 
 **Files/Modules Expected:** `docs/results/isolation_forest_vs_autoencoder.md`.
 
 ---
 
 ### TASK 8.3 — Experiment Run ID Registry
-**Priority:** P0 | **Dependencies:** 8.1, 6.5 | **Blocks:** Phase 9 (toate task-urile)
 
-**User Story:** Ca ML engineer, vreau ca fiecare rulare de experiment să primească un identificator unic, astfel încât rezultatele să poată fi referite explicit (în rapoarte, API, frontend) fără ambiguitate despre ce configurație le-a produs.
+**Priority:** P0 | **Dependencies:** 8.1, 6.5 | **Blocks:** Phase 9 (all tasks)
 
-**Description:** Formalizează un ID de run peste structura deja existentă în TASK 6.5 (Model Artifact Contract) și TASK 9.5 (raport agregat) — nu introduce o schemă nouă, doar un identificator care leagă cele două. Fiecare experiment din matricea A/B/C (TASK 9.2-9.4) primește un `experiment_id` (ex. `EXP-A-001`) la momentul rulării, salvat împreună cu metadata:
+**User Story:** As an ML engineer, I want every experiment run to receive a unique identifier so that results can be explicitly referenced (in reports, API, frontend) without ambiguity about which configuration produced them.
+
+**Description:** Formalize a run ID on top of the structure already established in TASK 6.5 (Model Artifact Contract) and TASK 9.5 (aggregated report) — do not introduce a new schema, only an identifier linking the two. Each experiment in the A/B/C matrix (TASK 9.2–9.4) receives an `experiment_id` (e.g. `EXP-A-001`) at runtime, stored together with the metadata:
 
 ```json
 {
@@ -830,126 +1040,163 @@ Scaler-ul e o componentă **comună**, consumată identic de ambele modele — n
   "model": "isolation_forest",
   "feature_dimension": 15,
   "random_seed": 42,
-  "preprocessing_config": {...},
-  "model_config": {...},
-  "threshold": {"method": "percentile", "value": 0.73},
-  "metrics": {...},
+  "preprocessing_config": {},
+  "model_config": {},
+  "threshold": {
+    "method": "percentile",
+    "value": 0.73
+  },
+  "metrics": {},
   "created_at": "ISO8601 timestamp"
 }
 ```
 
 **Implementation Steps:**
-1. `app/ml/experiment_registry.py` — funcție `register_experiment_run(config, metrics) -> experiment_id`, format ID convențional (`EXP-{A|B|C}-{NNN}`).
-2. Fiecare rulare din TASK 9.2/9.3/9.4 apelează această funcție, în loc să scrie manual fișiere de rezultate ad-hoc.
+
+1. `app/ml/experiment_registry.py` — function `register_experiment_run(config, metrics) -> experiment_id`, with a conventional ID format (`EXP-{A|B|C}-{NNN}`).
+
+2. Each run from TASK 9.2/9.3/9.4 calls this function instead of manually writing ad-hoc result files.
 
 **Acceptance Criteria:**
-- [ ] AC1: Fiecare experiment din matricea A/B/C are un `experiment_id` unic, generat automat, nu ales manual/hard-codat.
-- [ ] AC2: Given un `experiment_id`, pot recupera întreaga configurație + metrici asociate (test de round-trip: salvare → citire → identitate).
-- [ ] AC3: Frontend-ul (TASK 11.7, Experiments page) afișează `experiment_id` lângă fiecare rezultat din matrice, ca referință explicită (ex. "Experiment A — Raw + PCA + Isolation Forest — Run: EXP-A-001").
+
+* [ ] AC1: Every experiment in the A/B/C matrix has a unique `experiment_id`, generated automatically, not manually selected/hard-coded.
+
+* [ ] AC2: Given an `experiment_id`, the complete associated configuration + metrics can be retrieved (round-trip test: save → read → identity).
+
+* [ ] AC3: The frontend (TASK 11.7, Experiments page) displays the `experiment_id` next to each result in the matrix as an explicit reference (e.g. "Experiment A — Raw + PCA + Isolation Forest — Run: EXP-A-001").
 
 **Testing:** `backend/tests/ml/test_experiment_registry.py`.
 
-**Definition of Done:** registry implementat, folosit de toate cele 3 experimente din Phase 9, fără duplicare de schemă față de TASK 6.5.
+**Definition of Done:** Registry implemented and used by all three Phase 9 experiments, with no schema duplication relative to TASK 6.5.
 
 **Files/Modules Expected:** `backend/app/ml/experiment_registry.py`.
 
 ---
 
-# EPIC 4 — Experimentul Central
+# EPIC 4 — Central Experiment
 
 ## PHASE 9 — Central DSP vs Raw Experiment
 
-### TASK 9.1 — Reprezentare Raw + PCA (dimensionalitate controlată)
+### TASK 9.1 — Raw + PCA Representation (Controlled Dimensionality)
+
 **Priority:** P0 | **Dependencies:** 2.4, 5.4 | **Blocks:** 9.4
 
 **Implementation Steps:**
-1. Extrage ferestre brute (fără DSP) pentru train/val/test.
-2. Fit PCA **doar pe train**, reducere la exact același număr de componente cât are feature vector-ul DSP (din task 5.3).
-3. Aplică transformarea PCA pe val/test.
+
+1. Extract raw windows (without DSP) for train/validation/test.
+
+2. Fit PCA **only on train**, reducing to exactly the same number of components as the DSP feature vector (from TASK 5.3).
+
+3. Apply the PCA transformation to validation/test.
 
 **Acceptance Criteria:**
-- [ ] AC1 (CRITIC): PCA e fit-uit exclusiv pe ferestre din train (verificat prin cod — nicio cale de execuție nu permite fit pe val/test).
-- [ ] AC2: Dimensionalitatea rezultată (raw+PCA) == dimensionalitatea feature vector-ului DSP, exact, verificat automat.
-- [ ] AC3: Varianța explicată de componentele păstrate e raportată explicit (nu ascunsă), chiar dacă e mică.
+
+* [ ] AC1 (CRITICAL): PCA is fit exclusively on windows from the train split (verified through code — no execution path allows fitting on validation/test).
+
+* [ ] AC2: Resulting dimensionality (raw + PCA) == DSP feature vector dimensionality, verified automatically.
+
+* [ ] AC3: Explained variance of the retained components is explicitly reported (not hidden), even if it is low.
 
 **Testing:** `backend/tests/experiments/test_raw_pca.py`.
 
-**Definition of Done:** reprezentare raw+PCA generată pentru toate split-urile, dimensionalitate confirmată egală cu DSP.
+**Definition of Done:** Raw + PCA representation generated for all splits, with dimensionality confirmed equal to DSP.
 
 **Files/Modules Expected:** `backend/app/ml/dimensionality.py`.
 
 ---
 
-### TASK 9.2 — Experiment A: Raw+PCA → Isolation Forest
-**Priority:** P0 | **Dependencies:** 9.1, 6.2 (reutilizat), 8.3 | **Blocks:** 9.4
+### TASK 9.2 — Experiment A: Raw + PCA → Isolation Forest
+
+**Priority:** P0 | **Dependencies:** 9.1, 6.2 (reused), 8.3 | **Blocks:** 9.4
 
 **Acceptance Criteria:**
-- [ ] AC1: Antrenare identică metodologic cu 6.2 (doar pe "normal" din train), dar pe reprezentarea raw+PCA.
-- [ ] AC2: Evaluat cu exact același framework din 8.1, pe același test set (aceleași ferestre) ca Experimentul B.
-- [ ] AC3: Rularea primește un `experiment_id` unic prin registry-ul din TASK 8.3 (ex. `EXP-A-001`).
 
-**Definition of Done:** model + metrici Experiment A generate, status `NOT YET MEASURED` → înlocuit cu valori reale după rulare.
+* [ ] AC1: Training is methodologically identical to 6.2 (normal data only from train), but using the raw + PCA representation.
+
+* [ ] AC2: Evaluated using exactly the same framework from 8.1, on the same test set (same windows) as Experiment B.
+
+* [ ] AC3: The run receives a unique `experiment_id` through the registry from TASK 8.3 (e.g. `EXP-A-001`).
+
+**Definition of Done:** Experiment A model + metrics generated, status `NOT YET MEASURED` → replaced with real values after execution.
 
 **Files/Modules Expected:** `backend/scripts/run_experiment_a.py`, `models/experiment_a_isolation_forest.pkl`.
 
 ---
 
 ### TASK 9.3 — Experiment B: DSP Features → Isolation Forest
+
 **Priority:** P0 | **Dependencies:** 5.3, 6.2, 8.3 | **Blocks:** 9.4
 
-**Description:** Reutilizează direct modelul din Phase 6 (deja e exact acest experiment) — task-ul aici e doar de a-l încadra explicit în matricea comparativă, a-i atribui un `experiment_id` (ex. `EXP-B-001`) și a genera raportul asociat.
+**Description:** Directly reuse the model from Phase 6 (this is already exactly this experiment) — the task here is only to explicitly place it in the comparison matrix, assign it an `experiment_id` (e.g. `EXP-B-001`), and generate the associated report.
 
 **Acceptance Criteria:**
-- [ ] AC1: Modelul și metricile din Phase 6/8 sunt referite direct, fără reantrenare duplicată inutilă.
-- [ ] AC2: Rularea are un `experiment_id` unic înregistrat prin TASK 8.3.
 
-**Definition of Done:** Experiment B documentat ca referință la Phase 6/8, cu `experiment_id` atribuit.
+* [ ] AC1: The model and metrics from Phase 6/8 are referenced directly, without unnecessary duplicate retraining.
+
+* [ ] AC2: The run has a unique `experiment_id` registered through TASK 8.3.
+
+**Definition of Done:** Experiment B documented as a reference to Phase 6/8, with an assigned `experiment_id`.
 
 ---
 
 ### TASK 9.4 — Experiment C: DSP Features → Autoencoder
+
 **Priority:** P0 | **Dependencies:** 7.3, 8.3 | **Blocks:** 9.5
 
-**Description:** Reutilizează direct modelul din Phase 7, cu `experiment_id` propriu (ex. `EXP-C-001`).
+**Description:** Directly reuse the model from Phase 7, with its own `experiment_id` (e.g. `EXP-C-001`).
 
 **Acceptance Criteria:**
-- [ ] AC1: Metricile din Phase 7/8 sunt referite direct în matricea comparativă.
-- [ ] AC2: Rularea are un `experiment_id` unic înregistrat prin TASK 8.3.
 
-**Definition of Done:** Experiment C documentat ca referință la Phase 7/8, cu `experiment_id` atribuit.
+* [ ] AC1: Metrics from Phase 7/8 are directly referenced in the comparison matrix.
+
+* [ ] AC2: The run has a unique `experiment_id` registered through TASK 8.3.
+
+**Definition of Done:** Experiment C documented as a reference to Phase 7/8, with an assigned `experiment_id`.
 
 ---
 
-### TASK 9.5 — Agregare rezultate + raport final al experimentului central
+### TASK 9.5 — Result Aggregation + Final Central Experiment Report
+
 **Priority:** P0 | **Dependencies:** 9.2, 9.3, 9.4 | **Blocks:** Phase 12 (UI), Phase 13 (README)
 
 **Implementation Steps:**
-1. Construiește tabelul final: Experiment A/B/C × (Precision, Recall, F1, ROC-AUC, PR-AUC).
-2. Scrie interpretarea: ce înseamnă rezultatul, indiferent care variantă "câștigă".
-3. Include vizualizare (ex. bar chart comparativ) pentru frontend (Phase 12).
-4. Pentru fiecare din cele 3 experimente, salvează un artifact de reproducibilitate (JSON), conținând: `dataset_hash`, `split_manifest_hash` (aceleași ca în TASK 6.5), `preprocessing_config` (parametri detrend/normalize folosiți), `feature_set` (lista exactă de features, pentru B și C), `model_config` (hiperparametri), `random_seed`, `threshold_method` + `threshold_value`, metricile complete din task 8.1, `timestamp`.
+
+1. Build the final table: Experiment A/B/C × (Precision, Recall, F1, ROC-AUC, PR-AUC).
+
+2. Write the interpretation: explain what the result means, regardless of which variant "wins".
+
+3. Include a visualization (e.g. comparative bar chart) for the frontend (Phase 12).
+
+4. For each of the three experiments, save a reproducibility artifact (JSON) containing: `dataset_hash`, `split_manifest_hash` (same as in TASK 6.5), `preprocessing_config` (detrend/normalization parameters used), `feature_set` (exact feature list for B and C), `model_config` (hyperparameters), `random_seed`, `threshold_method` + `threshold_value`, complete metrics from TASK 8.1, `timestamp`.
 
 **Acceptance Criteria:**
-- [ ] AC1: Toate cele 3 celule ale matricei au valori reale măsurate, nu placeholder, la momentul finalizării task-ului.
-- [ ] AC2: Raportul discută explicit dacă rezultatul confirmă sau infirmă ipoteza inițială (secțiunea 19 blueprint), fără a forța o concluzie predefinită.
-- [ ] AC3: Dacă Experiment A (raw+PCA) e comparabil sau mai bun decât B, raportul discută explicit interpretarea alternativă (valoare DSP = interpretabilitate, nu neapărat performanță brută).
-- [ ] AC4: Fiecare din cele 3 experimente are un artifact de reproducibilitate JSON complet (schema de mai sus), verificabil — dacă cineva rulează din nou același experiment cu artifact-ul salvat ca input de configurare, obține metrici identice (test explicit de reproducibilitate, nu presupunere).
 
-**Definition of Done:** `docs/results/central_experiment_report.md` complet, cu date reale.
+* [ ] AC1: All three cells of the matrix contain real measured values, not placeholders, at the time the task is completed.
+
+* [ ] AC2: The report explicitly discusses whether the result confirms or refutes the initial hypothesis (Section 19 of the blueprint), without forcing a predefined conclusion.
+
+* [ ] AC3: If Experiment A (raw + PCA) is comparable to or better than B, the report explicitly discusses the alternative interpretation (DSP value = interpretability, not necessarily raw performance).
+
+* [ ] AC4: Each of the three experiments has a complete, verifiable JSON reproducibility artifact — if someone reruns the same experiment using the saved artifact as configuration input, they obtain identical metrics (explicit reproducibility test, not an assumption).
+
+**Definition of Done:** `docs/results/central_experiment_report.md` complete with real data.
 
 **Files/Modules Expected:** `docs/results/central_experiment_report.md`, `backend/scripts/aggregate_experiment_results.py`.
 
 ---
 
+
 # EPIC 5 — API & Backend Integration
 
 ## PHASE 10 — FastAPI
 
-### TASK 10.1 — Pydantic schemas (request/response) pentru toate endpoint-urile
-**Priority:** P0 | **Dependencies:** Phase 2-9 (modele existente) | **Blocks:** 10.2–10.8
+### TASK 10.1 — Pydantic Schemas (Request/Response) for All Endpoints
+
+**Priority:** P0 | **Dependencies:** Phase 2-9 (existing models) | **Blocks:** 10.2–10.8
 
 **Acceptance Criteria:**
-- [ ] AC1: Fiecare schemă respinge explicit un payload cu tip de date greșit (ex. `sampling_rate: str` în loc de `float`), testat.
+
+* [ ] AC1: Every schema explicitly rejects a payload with an incorrect data type (e.g. `sampling_rate: str` instead of `float`), verified through tests.
 
 **Testing:** `backend/tests/api/test_schemas.py`.
 
@@ -957,12 +1204,15 @@ Scaler-ul e o componentă **comună**, consumată identic de ambele modele — n
 
 ---
 
-### TASK 10.2 — Endpoint-uri Datasets (`GET /api/datasets`, `GET /api/datasets/{id}`)
+### TASK 10.2 — Dataset Endpoints (`GET /api/datasets`, `GET /api/datasets/{id}`)
+
 **Priority:** P0 | **Dependencies:** 10.1, 2.x
 
 **Acceptance Criteria:**
-- [ ] AC1: Given un dataset existent, when `GET /api/datasets/{id}`, then răspunsul conține metadata reală (samples, sampling rate, channels) din audit, nu valori placeholder.
-- [ ] AC2: Given un id inexistent, then HTTP 404 cu mesaj de eroare clar.
+
+* [ ] AC1: Given an existing dataset, when `GET /api/datasets/{id}` is called, then the response contains real metadata (samples, sampling rate, channels) from the audit, not placeholder values.
+
+* [ ] AC2: Given a non-existent ID, then HTTP 404 is returned with a clear error message.
 
 **Testing:** `backend/tests/api/test_datasets.py`.
 
@@ -970,12 +1220,15 @@ Scaler-ul e o componentă **comună**, consumată identic de ambele modele — n
 
 ---
 
-### TASK 10.3 — Endpoint-uri Signal Processing (`/fft`, `/psd`, `/spectrogram`, `/dsp/filter`)
+### TASK 10.3 — Signal Processing Endpoints (`/fft`, `/psd`, `/spectrogram`, `/dsp/filter`)
+
 **Priority:** P0 | **Dependencies:** 10.1, Phase 3-4
 
 **Acceptance Criteria:**
-- [ ] AC1: Given un semnal valid + parametri de filtrare, when `POST /api/dsp/filter`, then răspunsul conține semnalul filtrat cu aceleași proprietăți verificate deja în testele Phase 3 (reutilizare logică, nu reimplementare).
-- [ ] AC2: Given parametri invalizi (cutoff ≥ Nyquist), then HTTP 422 cu mesaj explicit, nu 500.
+
+* [ ] AC1: Given a valid signal + filter parameters, when `POST /api/dsp/filter` is called, then the response contains the filtered signal with the same properties already verified in the Phase 3 tests (reuse existing logic, do not reimplement it).
+
+* [ ] AC2: Given invalid parameters (cutoff ≥ Nyquist), then HTTP 422 is returned with an explicit message, not HTTP 500.
 
 **Testing:** `backend/tests/api/test_signal_processing_routes.py`.
 
@@ -983,11 +1236,13 @@ Scaler-ul e o componentă **comună**, consumată identic de ambele modele — n
 
 ---
 
-### TASK 10.4 — Endpoint Feature Extraction (`POST /api/features/extract`)
+### TASK 10.4 — Feature Extraction Endpoint (`POST /api/features/extract`)
+
 **Priority:** P0 | **Dependencies:** 10.1, 5.3
 
 **Acceptance Criteria:**
-- [ ] AC1: Răspunsul conține exact numărul de features din registry, cu nume de coloane consistente.
+
+* [ ] AC1: The response contains exactly the number of features defined in the registry, with consistent column names.
 
 **Testing:** `backend/tests/api/test_features_route.py`.
 
@@ -995,12 +1250,15 @@ Scaler-ul e o componentă **comună**, consumată identic de ambele modele — n
 
 ---
 
-### TASK 10.5 — Endpoint-uri Models (`GET /api/models`, `/api/models/{id}/performance`, `POST /api/models/predict`)
+### TASK 10.5 — Model Endpoints (`GET /api/models`, `/api/models/{id}/performance`, `POST /api/models/predict`)
+
 **Priority:** P0 | **Dependencies:** 10.1, Phase 6-8
 
 **Acceptance Criteria:**
-- [ ] AC1: `/api/models` listează Isolation Forest și Autoencoder cu metrici reale din Phase 8 (nu hard-codate în route).
-- [ ] AC2: `POST /api/models/predict` returnează anomaly score normalizat [0,1] + status (NORMAL/WARNING/ANOMALY) + explicație text bazată pe features reale calculate pentru semnalul dat (nu text generic).
+
+* [ ] AC1: `/api/models` lists Isolation Forest and Autoencoder with real metrics from Phase 8 (not hard-coded in the route).
+
+* [ ] AC2: `POST /api/models/predict` returns a normalized anomaly score [0,1] + status (NORMAL/WARNING/ANOMALY) + a text explanation based on real features calculated for the given signal (not generic text).
 
 **Testing:** `backend/tests/api/test_models_route.py`.
 
@@ -1008,11 +1266,13 @@ Scaler-ul e o componentă **comună**, consumată identic de ambele modele — n
 
 ---
 
-### TASK 10.6 — Endpoint Experiments (`GET /api/experiments`, `/api/experiments/{id}`)
+### TASK 10.6 — Experiment Endpoints (`GET /api/experiments`, `/api/experiments/{id}`)
+
 **Priority:** P1 | **Dependencies:** 10.1, 9.5
 
 **Acceptance Criteria:**
-- [ ] AC1: Returnează matricea experimentală (A/B/C) cu valorile reale din `central_experiment_report.md`/artifact JSON asociat.
+
+* [ ] AC1: Returns the A/B/C experiment matrix with real values from `central_experiment_report.md` / the associated JSON artifact.
 
 **Testing:** `backend/tests/api/test_experiments_route.py`.
 
@@ -1020,12 +1280,15 @@ Scaler-ul e o componentă **comună**, consumată identic de ambele modele — n
 
 ---
 
-### TASK 10.7 — Error handling global + validare centralizată
+### TASK 10.7 — Global Error Handling + Centralized Validation
+
 **Priority:** P0 | **Dependencies:** 10.2–10.6
 
 **Acceptance Criteria:**
-- [ ] AC1: Orice excepție necontrolată produce HTTP 500 cu body JSON structurat (nu stack trace expus în producție), logat server-side.
-- [ ] AC2: Erorile de validare Pydantic produc HTTP 422 cu detalii per câmp.
+
+* [ ] AC1: Any unhandled exception produces HTTP 500 with a structured JSON body (no stack trace exposed in production), and is logged server-side.
+
+* [ ] AC2: Pydantic validation errors produce HTTP 422 with field-level details.
 
 **Testing:** `backend/tests/api/test_error_handling.py`.
 
@@ -1033,13 +1296,15 @@ Scaler-ul e o componentă **comună**, consumată identic de ambele modele — n
 
 ---
 
-### TASK 10.8 — OpenAPI docs + verificare completă
+### TASK 10.8 — OpenAPI Documentation + Full Verification
+
 **Priority:** P1 | **Dependencies:** 10.2–10.7
 
 **Acceptance Criteria:**
-- [ ] AC1: `GET /docs` afișează toate endpoint-urile cu schema request/response corectă.
 
-**Definition of Done:** documentație OpenAPI completă, verificată manual.
+* [ ] AC1: `GET /docs` displays all endpoints with the correct request/response schemas.
+
+**Definition of Done:** Complete OpenAPI documentation, manually verified.
 
 ---
 
@@ -1047,100 +1312,125 @@ Scaler-ul e o componentă **comună**, consumată identic de ambele modele — n
 
 ## PHASE 11 — Frontend
 
-### TASK 11.1 — Application shell (sidebar, navigare, layout)
+### TASK 11.1 — Application Shell (Sidebar, Navigation, Layout)
+
 **Priority:** P0 | **Dependencies:** 1.5, 1.6 | **Blocks:** 11.2–11.9
 
 **Acceptance Criteria:**
-- [ ] AC1: Navigarea între toate paginile (Dashboard, Signals, Signal Analysis, DSP Lab, Anomaly Detection, Models, Experiments, Dataset) funcționează fără reload complet al paginii (React Router, client-side routing).
-- [ ] AC2: Layout responsive — sidebar colapsează corect sub un breakpoint definit (verificat manual la 2 lățimi de ecran).
 
-**Files/Modules Expected:** `frontend/src/layouts/AppShell.tsx`, `frontend/src/pages/*.tsx` (schelete).
+* [ ] AC1: Navigation between all pages (Dashboard, Signals, Signal Analysis, DSP Lab, Anomaly Detection, Models, Experiments, Dataset) works without a full page reload (React Router, client-side routing).
+
+* [ ] AC2: Responsive layout — the sidebar collapses correctly below a defined breakpoint (manually verified at 2 screen widths).
+
+**Files/Modules Expected:** `frontend/src/layouts/AppShell.tsx`, `frontend/src/pages/*.tsx` (scaffolds).
 
 ---
 
-### TASK 11.2 — Dashboard page
+### TASK 11.2 — Dashboard Page
+
 **Priority:** P0 | **Dependencies:** 11.1, 10.5
 
 **Acceptance Criteria:**
-- [ ] AC1: Given backend-ul cu date reale, Dashboard afișează anomaly score curent, status (NORMAL/WARNING/ANOMALY), threshold-ul folosit și numărul de semnale analizate, toate provenite din API, nu hard-codate. **Nu se afișează un "model confidence %"** — nici Isolation Forest, nici Autoencoder-ul din acest proiect nu produc o probabilitate calibrată; a afișa un procent de încredere neînsoțit de o metodă de calibrare reală ar fi echivalent cu a inventa o cifră.
-- [ ] AC2: Loading state afișat cât timp cererea API e în curs; error state afișat dacă API-ul eșuează.
 
-**Testing:** verificare manuală + eventual test de componentă (React Testing Library) pentru loading/error states.
+* [ ] AC1: Given a backend with real data, the Dashboard displays the current anomaly score, status (NORMAL/WARNING/ANOMALY), threshold used, and number of signals analyzed, all coming from the API rather than hard-coded. **A "model confidence %" must not be displayed** — neither Isolation Forest nor the Autoencoder in this project produces a calibrated probability; displaying an unexplained confidence percentage would amount to inventing a number.
+
+* [ ] AC2: A loading state is displayed while the API request is in progress; an error state is displayed if the API request fails.
+
+**Testing:** Manual verification + optional component test (React Testing Library) for loading/error states.
 
 **Files/Modules Expected:** `frontend/src/pages/Dashboard.tsx`.
 
 ---
 
-### TASK 11.3 — Signal Analysis page (tabs: Time/Frequency/Spectrogram/Features/AI Analysis)
+### TASK 11.3 — Signal Analysis Page (Tabs: Time/Frequency/Spectrogram/Features/AI Analysis)
+
 **Priority:** P0 | **Dependencies:** 11.1, 10.3, 10.4, 10.5
 
 **Acceptance Criteria:**
-- [ ] AC1: Graficul de time domain permite zoom și hover (verificat manual — Plotly built-in).
-- [ ] AC2: Comutarea între taburi păstrează semnalul selectat (nu resetează selecția utilizatorului).
+
+* [ ] AC1: The time-domain chart supports zoom and hover interactions (manually verified — Plotly built-in functionality).
+
+* [ ] AC2: Switching between tabs preserves the selected signal (does not reset the user's selection).
 
 **Files/Modules Expected:** `frontend/src/pages/SignalAnalysis.tsx`, `frontend/src/components/charts/*.tsx`.
 
 ---
 
-### TASK 11.4 — DSP Lab page (parametri filtru configurabili, comparație raw vs filtered)
+### TASK 11.4 — DSP Lab Page (Configurable Filter Parameters, Raw vs. Filtered Comparison)
+
 **Priority:** P0 | **Dependencies:** 11.1, 10.3
 
 **Acceptance Criteria:**
-- [ ] AC1: Modificarea cutoff-ului filtrului din UI declanșează un nou apel API și actualizează graficul, fără reload de pagină.
-- [ ] AC2: UI explică vizibil Nyquist frequency, cutoff, filter order (text scurt, nu doar slider fără context) — per cerința secțiunii 11 blueprint.
+
+* [ ] AC1: Changing the filter cutoff value in the UI triggers a new API request and updates the chart without reloading the page.
+
+* [ ] AC2: The UI visibly explains Nyquist frequency, cutoff, and filter order (short explanatory text, not just a slider without context) — according to the requirement in Section 11 of the blueprint.
 
 **Files/Modules Expected:** `frontend/src/pages/DSPLab.tsx`.
 
 ---
 
-### TASK 11.5 — Models page
+### TASK 11.5 — Models Page
+
 **Priority:** P1 | **Dependencies:** 11.1, 10.5
 
 **Acceptance Criteria:**
-- [ ] AC1: Ambele modele (Isolation Forest, Autoencoder) afișate cu metrici reale din API.
-- [ ] AC2: Selectarea modelului activ persistă (măcar în state-ul sesiunii curente) și afectează pagina de Anomaly Detection.
+
+* [ ] AC1: Both models (Isolation Forest, Autoencoder) are displayed with real metrics from the API.
+
+* [ ] AC2: Selecting the active model persists at least within the current session state and affects the Anomaly Detection page.
 
 **Files/Modules Expected:** `frontend/src/pages/Models.tsx`.
 
 ---
 
-### TASK 11.6 — Anomaly Detection / AI Analysis view
+### TASK 11.6 — Anomaly Detection / AI Analysis View
+
 **Priority:** P0 | **Dependencies:** 11.1, 10.5
 
 **Acceptance Criteria:**
-- [ ] AC1: Given un semnal analizat, afișează anomaly score, threshold-ul folosit, status, și indicatori text bazați pe valori reale de features (nu text generic hard-codat). **Nu afișează "confidence %"** — nedefinit matematic pentru modelele din acest proiect (vezi nota din TASK 11.2).
-- [ ] AC2: Formularea din UI respectă explicit precizarea din blueprint secțiunea 17 — scorul e prezentat ca "cât de neobișnuit", nu ca "% defect fizic".
-- [ ] AC3: UI afișează un text scurt de interpretare (ex. "Scor ridicat de anomalie față de baseline-ul normal învățat"), nu doar cifra goală.
+
+* [ ] AC1: Given an analyzed signal, the UI displays the anomaly score, threshold used, status, and text indicators based on real feature values (not generic hard-coded text). **It must not display a "confidence %"** — this is mathematically undefined for the models used in this project (see the note in TASK 11.2).
+
+* [ ] AC2: UI wording explicitly follows the clarification from Section 17 of the blueprint — the score is presented as "how unusual the signal is", not as a "% physical failure".
+
+* [ ] AC3: The UI displays a short interpretation (e.g. "High anomaly score compared with the learned normal baseline"), not just the raw number.
 
 **Files/Modules Expected:** `frontend/src/components/anomaly/AnomalyPanel.tsx`.
 
 ---
 
-### TASK 11.7 — Experiments page (matricea A/B/C)
+### TASK 11.7 — Experiments Page (A/B/C Matrix)
+
 **Priority:** P1 | **Dependencies:** 11.1, 10.6
 
 **Acceptance Criteria:**
-- [ ] AC1: Afișează matricea Representation × Model din secțiunea 19 a blueprint-ului, cu valori reale din API.
+
+* [ ] AC1: Displays the Representation × Model matrix from Section 19 of the blueprint, with real values from the API.
 
 **Files/Modules Expected:** `frontend/src/pages/Experiments.tsx`.
 
 ---
 
-### TASK 11.8 — Dataset page
+### TASK 11.8 — Dataset Page
+
 **Priority:** P1 | **Dependencies:** 11.1, 10.2
 
 **Acceptance Criteria:**
-- [ ] AC1: Afișează metadata reală din audit (samples, sampling rate, duration, channels, missing values) — nicio valoare placeholder.
+
+* [ ] AC1: Displays real metadata from the audit (samples, sampling rate, duration, channels, missing values) — no placeholder values.
 
 **Files/Modules Expected:** `frontend/src/pages/Dataset.tsx`.
 
 ---
 
-### TASK 11.9 — Loading/Error/Empty states consistente global
+### TASK 11.9 — Consistent Global Loading/Error/Empty States
+
 **Priority:** P1 | **Dependencies:** 11.2–11.8
 
 **Acceptance Criteria:**
-- [ ] AC1: Fiecare pagină care face fetch de date are cele 3 stări implementate (nu doar happy path).
+
+* [ ] AC1: Every page that fetches data implements all three states (not only the happy path).
 
 **Files/Modules Expected:** `frontend/src/components/ui/LoadingState.tsx`, `ErrorState.tsx`, `EmptyState.tsx`.
 
@@ -1150,33 +1440,41 @@ Scaler-ul e o componentă **comună**, consumată identic de ambele modele — n
 
 ## PHASE 12 — Explainability + 3D PCA + Polish
 
-### TASK 12.1 — Anomaly explanation bazată pe features reale
+### TASK 12.1 — Anomaly Explanation Based on Real Features
+
 **Priority:** P0 | **Dependencies:** 11.6, 5.3
 
 **Acceptance Criteria:**
-- [ ] AC1: Given un semnal anormal, explicația listează features cu deviație semnificativă față de baseline-ul normal (calculat, nu inventat) — ex. "RMS +32% vs. baseline normal", cu procentul calculat real.
-- [ ] AC2: Textul UI nu descrie scorul ca "procent de deteriorare fizică" (per constrângerea explicită a blueprint-ului).
+
+* [ ] AC1: Given an anomalous signal, the explanation lists features with significant deviation from the normal baseline (calculated, not invented) — e.g. "RMS +32% vs. normal baseline", with the percentage calculated from real data.
+
+* [ ] AC2: UI text must not describe the score as a "physical damage percentage" (according to the explicit blueprint constraint).
 
 **Files/Modules Expected:** `backend/app/services/explanation_service.py`, `frontend/src/components/anomaly/ExplanationList.tsx`.
 
 ---
 
-### TASK 12.2 — PCA 3D feature space visualization
+### TASK 12.2 — PCA 3D Feature Space Visualization
+
 **Priority:** P1 | **Dependencies:** 9.1, 11.7
 
 **Acceptance Criteria:**
-- [ ] AC1: Punctele din vizualizarea 3D sunt colorate după clasa reală (normal/fault types) din dataset, nu aleator.
-- [ ] AC2: UI menționează explicit că PCA e folosit pentru vizualizare/reducere dimensională, nu ca dovadă de separabilitate garantată (per secțiunea 21 blueprint).
+
+* [ ] AC1: Points in the 3D visualization are colored according to the real class (normal/fault types) from the dataset, not randomly.
+
+* [ ] AC2: The UI explicitly states that PCA is used for visualization/dimensionality reduction, not as proof of guaranteed separability (according to Section 21 of the blueprint).
 
 **Files/Modules Expected:** `frontend/src/components/charts/PCA3DPlot.tsx`.
 
 ---
 
-### TASK 12.3 — Polish vizual final (consistență design tokens, animații subtile)
-**Priority:** P2 | **Dependencies:** toate task-urile Phase 11
+### TASK 12.3 — Final Visual Polish (Design Token Consistency, Subtle Animations)
+
+**Priority:** P2 | **Dependencies:** all Phase 11 tasks
 
 **Acceptance Criteria:**
-- [ ] AC1: Zero culori hard-codate în afara `globals.css` (verificare manuală/grep).
+
+* [ ] AC1: Zero hard-coded colors outside `globals.css` (verified manually/through grep).
 
 ---
 
@@ -1184,137 +1482,169 @@ Scaler-ul e o componentă **comună**, consumată identic de ambele modele — n
 
 ## PHASE 13 — Final Validation & Documentation
 
-### TASK 13.1 — CWRU loader + validare cross-dataset
-**Priority:** P1 | **Dependencies:** Phase 6-9 stabile
+### TASK 13.1 — CWRU Loader + Cross-Dataset Validation
+
+**Priority:** P1 | **Dependencies:** Phase 6-9 stable
 
 **Acceptance Criteria:**
-- [ ] AC1: Modelele antrenate pe MAFAULDA sunt evaluate pe CWRU (după un feature extraction echivalent), rezultatele raportate onest, indiferent dacă generalizarea e bună sau slabă.
 
-**Notes:** **Necesită și acest dataset urcat de utilizator** — aceeași constrângere de rețea ca MAFAULDA.
+* [ ] AC1: Models trained on MAFAULDA are evaluated on CWRU (using equivalent feature extraction), with results reported honestly regardless of whether generalization is good or poor.
+
+**Notes:** **This dataset must also be uploaded by the user** — same network constraint as MAFAULDA.
 
 **Files/Modules Expected:** `backend/app/datasets/cwru_loader.py`, `docs/results/cross_dataset_validation.md`.
 
 ---
 
-### TASK 13.2 — README final complet
-**Priority:** P0 | **Dependencies:** toate fazele anterioare
+### TASK 13.2 — Complete Final README
+
+**Priority:** P0 | **Dependencies:** all previous phases
 
 **Acceptance Criteria:**
-- [ ] AC1: README conține toate secțiunile din blueprint secțiunea 24 (Overview, Architecture, Signal Processing, ML, DL, Evaluation, Results, Installation, Usage, Future Work), plus secțiunea dedicată "Data Leakage Prevention".
-- [ ] AC2: Nicio cifră de performanță din README nu e inventată — toate provin din `docs/results/*.md`.
+
+* [ ] AC1: README contains all sections from Section 24 of the blueprint (Overview, Architecture, Signal Processing, ML, DL, Evaluation, Results, Installation, Usage, Future Work), plus the dedicated "Data Leakage Prevention" section.
+
+* [ ] AC2: No performance number in the README is invented — all performance figures come from `docs/results/*.md`.
 
 **Files/Modules Expected:** `README.md`.
 
 ---
 
-### TASK 13.3 — Cleanup, screenshots, documentație de interviu
+### TASK 13.3 — Cleanup, Screenshots, Interview Documentation
+
 **Priority:** P2 | **Dependencies:** 13.2
 
 **Acceptance Criteria:**
-- [ ] AC1: `docs/interview_prep.md` conține răspunsuri reale (nu generice) la întrebările din blueprint secțiunea 36, referind decizii concrete luate în proiect.
+
+* [ ] AC1: `docs/interview_prep.md` contains real answers (not generic ones) to the questions from Section 36 of the blueprint, referencing concrete decisions made in the project.
 
 **Files/Modules Expected:** `docs/interview_prep.md`, `docs/screenshots/`.
 
 
----
+# DEPENDENCY GRAPH (summary by Phase, not by individual task)
 
-# DEPENDENCY GRAPH (rezumat pe Phase, nu pe fiecare task individual)
-
-```
+```text
 Phase 1 (Setup)
+
    │
    ▼
-Phase 1.5 (Dataset Audit) ◄── BLOCKER: necesită upload MAFAULDA
+Phase 1.5 (Dataset Audit) ◄── BLOCKER: requires MAFAULDA upload
+
    │
    ▼
-Phase 2 (Dataset Integration) ◄── depinde de split_manifest.json (1.5.7)
+Phase 2 (Dataset Integration) ◄── depends on split_manifest.json (1.5.7)
+
    │
    ▼
 Phase 3 (Preprocessing + Filtering)
+
    │
    ▼
-Phase 4 (FFT / PSD / Spectrogram) ◄── depinde de Phase 3 (preprocessing)
+Phase 4 (FFT / PSD / Spectrogram) ◄── depends on Phase 3 (preprocessing)
+
    │
    ▼
-Phase 5 (Feature Engineering, inclusiv TASK 5.4 — Feature Scaling COMUN, nu deținut de IF) ◄── depinde de Phase 3 + Phase 4
+Phase 5 (Feature Engineering, including TASK 5.4 — COMMON Feature Scaling, not owned by IF) ◄── depends on Phase 3 + Phase 4
+
    │
    ├──────────────┐
    ▼              ▼
-Phase 6 (IF)   Phase 7 (Autoencoder)   ◄── ambele consumă ACELAȘI scaler din 5.4, independente una de alta
+Phase 6 (IF)   Phase 7 (Autoencoder)   ◄── both consume the SAME scaler from 5.4, independent of each other
+
    │              │
    └──────┬───────┘
           ▼
-     Phase 8 (Evaluation Framework + TASK 8.3 Experiment Run ID Registry) ◄── depinde de AMBELE Phase 6 și 7
+    Phase 8 (Evaluation Framework + TASK 8.3 Experiment Run ID Registry) ◄── depends on BOTH Phase 6 and 7
+
           │
           ▼
-     Phase 9 (Central Experiment) ◄── depinde de Phase 2 (raw data), Phase 5 (features), 
-          │                            Phase 6 (IF reutilizat), Phase 7 (AE reutilizat), Phase 8 (framework)
+    Phase 9 (Central Experiment) ◄── depends on Phase 2 (raw data), Phase 5 (features),
+          │                        Phase 6 (reused IF), Phase 7 (reused AE), Phase 8 (framework)
+
           ▼
-     Phase 10 (FastAPI) ◄── depinde de Phase 2-9 (toată logica de business există deja)
+    Phase 10 (FastAPI) ◄── depends on Phase 2-9 (all business logic already exists)
+
           │
           ▼
-     Phase 11 (Frontend) ◄── depinde de Phase 10 (API funcțională)
+    Phase 11 (Frontend) ◄── depends on Phase 10 (functional API)
+
           │
           ▼
-     Phase 12 (Explainability + PCA 3D) ◄── depinde de Phase 9 (features/PCA) + Phase 11 (UI)
+    Phase 12 (Explainability + PCA 3D) ◄── depends on Phase 9 (features/PCA) + Phase 11 (UI)
+
           │
           ▼
-     Phase 13 (Final Validation) ◄── depinde de tot proiectul + upload CWRU
+    Phase 13 (Final Validation) ◄── depends on the entire project + CWRU upload
 ```
 
 ---
 
 # CRITICAL PATH
 
-Drumul care, dacă întârzie, întârzie tot proiectul:
+The path that, if delayed, delays the entire project:
 
-```
-1.1 → 1.2 → 1.3 → [Phase 1.5, TOATE task-urile, blocate de upload dataset]
-→ 1.5.7 (split manifest) → 2.1 → 2.2 → 2.4 (windowing anti-leakage)
-→ 3.1 → 3.2 → 4.1 → 4.2 → 5.1 → 5.2 → 5.3 → 5.4 (scaling comun)
-→ 6.2 (antrenare IF) ȘI 7.2 (antrenare AE, în paralel logic — ambele consumă scaler-ul din 5.4)
+```text
+1.1 → 1.2 → 1.3 → [Phase 1.5, ALL tasks, blocked by dataset upload]
+
+→ 1.5.7 (split manifest) → 2.1 → 2.2 → 2.4 (anti-leakage windowing)
+
+→ 3.1 → 3.2 → 4.1 → 4.2 → 5.1 → 5.2 → 5.3 → 5.4 (common scaling)
+
+→ 6.2 (IF training) AND 7.2 (AE training, logically in parallel — both consume the scaler from 5.4)
+
 → 8.1 (evaluation framework) → 8.3 (experiment run ID registry)
-→ 9.1 (raw+PCA) → 9.2 (Exp A) → 9.5 (raport final experiment central)
-→ 10.5 (endpoint predict) → 11.6 (Anomaly Detection UI)
-→ 13.2 (README final)
+
+→ 9.1 (raw+PCA) → 9.2 (Exp A) → 9.5 (final central experiment report)
+
+→ 10.5 (predict endpoint) → 11.6 (Anomaly Detection UI)
+
+→ 13.2 (final README)
 ```
 
-**Cel mai lung blocaj real de pe critical path:** Phase 1.5 — nu tehnic, ci de disponibilitate a datelor (upload utilizator). Restul lanțului (Phase 2 → 9) e blocaj tehnic normal, secvențial.
+**The longest real blocker on the critical path:** Phase 1.5 — not technical, but caused by data availability (user dataset upload). The rest of the chain (Phase 2 → 9) is a normal technical, sequential dependency.
 
 ---
 
-# IMPLEMENTATION ORDER (ordinea reală de execuție)
+# IMPLEMENTATION ORDER (actual execution order)
 
-1. Phase 1 (task-urile 1.1 → 1.6, complet automatizabil, fără blocker)
-2. **STOP la poarta Phase 1.5** — cerere explicită de upload dataset către utilizator
-3. Phase 1.5 (după upload) → Phase 2 → Phase 3 → Phase 4 → Phase 5 (secvențial strict, fiecare depinde de precedenta)
-4. Phase 6 și Phase 7 (pot fi raportate ca implementate în aceeași "rundă", dar codul se scrie secvențial, nu literal paralel)
-5. Phase 8 → Phase 9 (experimentul central, piesa cu cea mai mare valoare)
-6. Phase 10 (API completă peste logica deja validată)
-7. Phase 11 (Frontend peste API funcțională)
+1. Phase 1 (tasks 1.1 → 1.6, fully automatable, no blocker)
+
+2. **STOP at the Phase 1.5 gate** — explicitly request dataset upload from the user
+
+3. Phase 1.5 (after upload) → Phase 2 → Phase 3 → Phase 4 → Phase 5 (strictly sequential, each depending on the previous phase)
+
+4. Phase 6 and Phase 7 (can be reported as implemented in the same "round", but the code is written sequentially, not literally in parallel)
+
+5. Phase 8 → Phase 9 (central experiment, the highest-value component)
+
+6. Phase 10 (complete API on top of already validated logic)
+
+7. Phase 11 (Frontend on top of functional API)
+
 8. Phase 12 (explainability + polish)
-9. Phase 13 (necesită și upload CWRU pentru task 13.1; restul — README, cleanup — nu are blocker)
+
+9. Phase 13 (also requires CWRU upload for task 13.1; the remaining work — README, cleanup — has no blocker)
 
 ---
 
-# PHASE GATE CRITERIA (condiție de trecere la faza următoare)
+# PHASE GATE CRITERIA (conditions for moving to the next phase)
 
-| Gate | Condiție de trecere |
-|---|---|
-| 1 → 1.5 | Ambele servere pornesc, `pytest` rulează verde pe testele Phase 1 (health endpoint) |
-| 1.5 → 2 | `AUDIT_REPORT.md` complet, `split_manifest.json` generat și validat (fără overlap fișiere între split-uri) |
-| 2 → 3 | Testul de leakage din windowing (2.4-AC1) trece explicit |
-| 3 → 4 | Toate testele de filtrare/preprocessing verzi, verificate pe semnal sintetic cunoscut |
-| 4 → 5 | FFT/PSD/Spectrogramă validate pe semnale sintetice cu frecvențe cunoscute |
-| 5 → 6/7 | Matricea de features generată fără NaN/Inf pentru toate split-urile, ȘI scaler-ul comun (TASK 5.4) fit-uit o singură dată pe train, consumat identic de ambele modele |
-| 6/7 → 8 | Ambele modele antrenate exclusiv pe date "normale" (verificat prin testele AC1 dedicate anti-leakage-de-labels), fiecare cu Model Artifact Contract (TASK 6.5) complet |
-| 8 → 9 | Framework de evaluare comun, testat, aplicat identic pe ambele modele |
-| 9 → 10 | Matricea experimentală A/B/C completă cu valori reale, nu placeholder |
-| 10 → 11 | Toate endpoint-urile testate cu `TestClient`, `GET /docs` funcțional |
-| 11 → 12 | Workflow complet click-through (dataset → analiză → predicție) fără erori |
-| 12 → 13 | Explicațiile de anomalie verificate ca fiind bazate pe valori reale, nu text generic |
-| 13 → DONE | README complet, toate cifrele raportate provin din `docs/results/*.md` |
+| Gate      | Passing condition                                                                                                                                                  |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1 → 1.5   | Both servers start successfully, `pytest` passes on Phase 1 tests (health endpoint)                                                                                |
+| 1.5 → 2   | `AUDIT_REPORT.md` is complete, `split_manifest.json` is generated and validated (no file overlap between splits)                                                   |
+| 2 → 3     | The windowing leakage test (2.4-AC1) explicitly passes                                                                                                             |
+| 3 → 4     | All preprocessing/filtering tests pass, verified on a known synthetic signal                                                                                       |
+| 4 → 5     | FFT/PSD/Spectrogram validated on synthetic signals with known frequencies                                                                                          |
+| 5 → 6/7   | Feature matrix generated without NaN/Inf for all splits, AND the common scaler (TASK 5.4) is fit exactly once on train and consumed identically by both models     |
+| 6/7 → 8   | Both models are trained exclusively on "normal" data (verified through dedicated AC1 label-leakage tests), each with a complete Model Artifact Contract (TASK 6.5) |
+| 8 → 9     | Common evaluation framework is tested and applied identically to both models                                                                                       |
+| 9 → 10    | A/B/C experimental matrix is complete with real values, not placeholders                                                                                           |
+| 10 → 11   | All endpoints tested with `TestClient`, `GET /docs` functional                                                                                                     |
+| 11 → 12   | Complete click-through workflow (dataset → analysis → prediction) works without errors                                                                             |
+| 12 → 13   | Anomaly explanations verified to be based on real values, not generic text                                                                                         |
+| 13 → DONE | README complete, all reported figures originate from `docs/results/*.md`                                                                                           |
 
 ---
 
-**Backlog generat complet. Fără implementare încă executată în afara acestui document.**
+**Backlog fully generated. No implementation has been executed outside this document yet.**
