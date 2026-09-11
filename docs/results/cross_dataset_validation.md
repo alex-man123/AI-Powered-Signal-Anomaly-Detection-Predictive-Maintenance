@@ -1,8 +1,8 @@
 # Cross-Dataset Validation — MAFAULDA → CWRU (TASK 13.1)
 
-**Status: BLOCKED — the real CWRU Bearing Dataset is not present in this repository/environment.** No cross-dataset metric in this report is a placeholder or an estimate; every "NOT YET MEASURED" below means exactly that: the real evaluation has not been run, because the real input data it needs does not exist here yet. Nothing in this document should be read as evidence of good, moderate, or poor generalization — that question is open until the dataset is uploaded and `scripts/run_cross_dataset_validation.py` is actually run against it.
+**Status: MEASURED.** The real CWRU Bearing Dataset (161 real `.mat` files, uploaded by the user under `data/external/cwru/`) was evaluated end-to-end against the real, standing MAFAULDA-trained production models, with no retraining, refitting, or recalibration on CWRU anywhere in the pipeline. Every number below comes from one real, executed run of `python -m scripts.run_cross_dataset_validation` (backend/), reproduced by `backend/tests/scripts/test_run_cross_dataset_validation.py`'s own real-dataset tests. Nothing here is a placeholder, an estimate, or a projection.
 
-Source of what IS real and already verified in this report: `backend/app/datasets/cwru_loader.py` (the loader) and `backend/scripts/run_cross_dataset_validation.py` (the evaluation pipeline), both written and tested (`backend/tests/dataset/test_cwru_loader.py`, `backend/tests/scripts/test_run_cross_dataset_validation.py`) as part of this task, plus one real, executed consistency check (Section 3) against the real, standing MAFAULDA production models.
+**Headline, stated plainly and without spin:** at MAFAULDA's own calibrated threshold, both models flag essentially **every** CWRU window — normal and faulty alike — as anomalous. This means the calibrated *decision* (NORMAL vs. ANOMALY) does **not** transfer to CWRU. The underlying **continuous** anomaly scores, however, are not random relative to the true label (ROC-AUC 0.61–0.68, above the 0.50 chance level) — see Section 5 for what this does and does not support.
 
 ---
 
@@ -10,18 +10,27 @@ Source of what IS real and already verified in this report: `backend/app/dataset
 
 | | MAFAULDA (training) | CWRU (external evaluation) |
 |---|---|---|
-| Role | Primary — all 4 real models/artifacts in this project are trained on it | Secondary, cross-dataset validation only (docs/blueprint.md §4/§5/§7) |
-| Present in this environment? | Yes (`data/raw/mafaulda/`, 880 real files) | **No** — `data/external/cwru/` does not exist; only the tracked `.gitkeep` placeholder is present |
-| Format | CSV | `.mat` (MATLAB) |
-| Sampling rate | 50,000 Hz (fixed, every file) | 12,000 Hz or 48,000 Hz depending on subset (per CWRU's own public documentation — docs/blueprint.md's CWRU section; not independently re-verified here since no real file is available to check) |
-| Real classes | 4: `normal`, `imbalance`, `horizontal-misalignment`, `vertical-misalignment` | 4 (per public documentation): `normal`, `ball`, `inner-race`, `outer-race` |
-| Channels per file | 8 | 1–3 (`DE`/`FE`/`BA` accelerometers) |
+| Role | Primary — all models/artifacts in this project are trained on it | Secondary, cross-dataset validation only (docs/blueprint.md §4/§5/§7) |
+| Present in this environment? | Yes (`data/raw/mafaulda/`, 880 real files) | **Yes** — `data/external/cwru/`, 161 real `.mat` files (uploaded 2026-09-11) |
+| Format | CSV | `.mat` (MATLAB), read via `scipy.io.loadmat` |
+| Sampling rate | 50,000 Hz (fixed, every file) | **Two real rates present**: 12,000 Hz (`12k_Drive_End_Bearing_Fault_Data/`, `12k_Fan_End_Bearing_Fault_Data/`, `Normal/`) and 48,000 Hz (`48k_Drive_End_Bearing_Fault_Data/`) |
+| Real classes | 4: `normal`, `imbalance`, `horizontal-misalignment`, `vertical-misalignment` | 4: `normal`, `ball`, `inner-race`, `outer-race` |
+| Channels per file | 8 | 2–3 (`DE`/`FE`, sometimes also `BA`) |
 
-**Number of samples/windows evaluated: NOT YET MEASURED — 0.** No CWRU file has been loaded, windowed, or scored, because none exists in this environment.
+**Number of windows evaluated (real, measured):**
 
-**Sampling rate actually used for CWRU: NOT YET MEASURED.** `app.datasets.cwru_loader` resolves it per-file from the uploaded directory layout (`12khz/`/`48khz/` segment) — see Section 2 for the exact contract — but no real value has been read from a real file yet.
+| Sampling-rate group | Total windows | Normal | Anomaly (ball+inner-race+outer-race) |
+|---|---|---|---|
+| 12,000 Hz | 79,112 | 8,512 | 70,600 |
+| 48,000 Hz | 86,368 | **0** | 86,368 |
 
-**Important, disclosed difference between the two datasets that any future result must be read against:** MAFAULDA is a multi-channel (8), single-sampling-rate (50 kHz), single-machine-type dataset with imbalance/misalignment faults; CWRU is a 1–3-channel, dual-sampling-rate (12/48 kHz), single-machine-type dataset with bearing (ball/race) faults. **The two datasets do not share a single real fault type** — MAFAULDA has no bearing faults, CWRU has no imbalance/misalignment faults. Any cross-dataset "anomaly" comparison is therefore a comparison of "does a model trained to recognize one family of mechanical faults flag an entirely different family of mechanical faults as anomalous", not the same fault type observed under a different sensor setup. This is a structurally important caveat for interpreting any future result (Section 5), not a defect in the implementation.
+Windowing: `window_size=1024` samples, `overlap=0.5` — reused unchanged from MAFAULDA's own configuration (see Section 6 for what this means physically at each rate). Feature extraction: the same 15 DSP features as MAFAULDA (`app.features.registry`), Welch PSD `nperseg=256`/`noverlap=128`, computed at CWRU's own real sampling rate for each group (never MAFAULDA's 50 kHz).
+
+**A real, disclosed property of this particular download, not a defect:** the 48 kHz subset contains **only** fault recordings (`48k_Drive_End_Bearing_Fault_Data/`) — no `Normal/` file in this mirror was collected at 48 kHz. The 48 kHz evaluation below is therefore a single-class (100% anomaly) test set.
+
+**`Normal/`'s real sampling rate — the one inferential step in this report, made explicit:** the real, downloaded `Normal/` files carry no `<N>k_...` directory segment (unlike every fault file). CWRU's own "Apparatus and Procedures" page (fetched directly while implementing this task) states: *"Digital data was collected at 12,000 samples per second, and data was also collected at 48,000 samples per second for drive end bearing faults."* Read literally, 48 kHz is documented as an **additional** rate specific to drive-end **fault** recordings — the Normal baseline set is not a drive-end fault, so by this wording it uses the general, base 12,000 Hz rate. This reading was confirmed with the user directly (2026-09-11) before running the evaluation below; `app.datasets.cwru_loader` never assumes it silently — it raises `CWRULoaderError` for any `Normal/` file unless `sampling_rate_hz`/`normal_sampling_rate_hz=12000.0` is passed explicitly.
+
+**Structurally important caveat for reading every result below:** MAFAULDA's fault classes (imbalance, horizontal/vertical misalignment) and CWRU's (ball, inner-race, outer-race bearing defects) **do not overlap**. A model trained only on MAFAULDA's fault signatures is being asked, here, to generalize to an entirely different family of mechanical faults on different hardware/sensors — not merely the same fault type recorded differently.
 
 ---
 
@@ -29,80 +38,78 @@ Source of what IS real and already verified in this report: `backend/app/dataset
 
 ### 2.1 `backend/app/datasets/cwru_loader.py`
 
-- Reads `.mat` files via `scipy.io.loadmat` (already a project dependency — `pyproject.toml`).
-- Requires the uploaded CWRU tree to follow this layout: `data/external/cwru/<12khz|48khz>/<normal|ball|inner-race|outer-race>/.../<file>.mat`. **This layout is a contract this loader imposes, not a fact discovered by auditing real CWRU files** (unlike MAFAULDA's own directory convention, which TASK 1.5.1/1.5.2 derived from an actual audit of the real downloaded dataset) — no real CWRU files exist in this environment to audit. It is based on CWRU's publicly documented format (docs/blueprint.md's CWRU section) and is explicit and inspectable so it can be corrected the moment real files are available, if the real distribution turns out to differ.
-- Within a `.mat` file, matches any variable named `<fileid>_<DE|FE|BA>_time` (a generic regex, not one hardcoded key) — CWRU's publicly documented time-series variable naming convention.
-- Never guesses: a file outside a recognized label directory, a missing sampling-rate directory segment (with no explicit override), or a `.mat` file with no matching time-series variable all raise `CWRULoaderError` with a specific, actionable message — never a silently wrong label/rate/channel.
-- `discover_recordings`/`load_all_recordings` raise `CWRULoaderError` immediately when `data/external/cwru/` does not exist — this is the actual, current, real behavior in this environment (verified by test, not simulated).
+- Reads `.mat` files via `scipy.io.loadmat`. Directory contract **verified directly against the real, downloaded files** (not merely public documentation): `<12k|48k>_<Drive|Fan>_End_Bearing_Fault_Data/<B|IR|OR>/<diameter>/[<orientation>/]<file>.mat` for faults, bare `Normal/<file>.mat` for the normal baseline set. Label directories (`B`/`IR`/`OR`/`Normal`) and the sampling-rate prefix (`<N>k_...`) are parsed generically (regex-based), robust to the real tree's inconsistent nesting depth (e.g. 0.014" outer-race faults have no `@N` orientation subdirectory in this download, while 0.007"/0.021" do).
+- `.mat` variable naming (`X<fileid>_DE_time`/`_FE_time`/`_BA_time`) confirmed directly against real files while writing this module (e.g. `Normal/97_Normal_0.mat` → `X097_DE_time`, `X097_FE_time`, `X097RPM`).
+- Never guesses: an unrecognized label directory, an unresolvable sampling rate (including every `Normal/` file without an explicit override — see Section 1), or a `.mat` file with no matching time-series variable all raise `CWRULoaderError` with a specific message.
 
 ### 2.2 `backend/scripts/run_cross_dataset_validation.py`
 
-End-to-end pipeline, structured to mirror `scripts/run_experiment_b.py`/`run_experiment_c.py`'s own "load the real standing artifact, never train/fit anything" pattern exactly (see Section 3 for what "reuse" means precisely here, and Section 4 for the guarantees this provides):
-
-1. Loads the real, standing `models/isolation_forest_v1.pkl` **or** `models/autoencoder_v1.pt` plus its real TASK 6.5 metadata sidecar (`app.ml.model_artifact.load_model_artifact`) — never re-trained.
-2. Loads the real, standing `models/scaler_v1.pkl` the metadata names (`app.ml.inference.load_scaler`) — used only via `.transform()` (`app.ml.scaling.apply_scaler` / `app.ml.inference.predict`), never refit.
-3. Recomputes score normalization (`app.ml.scoring.calibrate`) from the **real MAFAULDA validation split only** (`scripts.run_experiment_a.VALIDATION_FILES`) — the same files/method/percentile Experiments A/B/C already use — and asserts the result reproduces the model's **already-persisted** `threshold_value` before proceeding. CWRU never participates in this step.
-4. Loads real CWRU recordings (`app.datasets.cwru_loader.load_all_recordings`), windows them (same `window_size`/`overlap` as MAFAULDA, CWRU's own real sampling rate for the Welch PSD), extracts the same 15 DSP features (`app.features.registry`/`app.features.extractor`, unmodified), scores them with the model/scaler/calibration from steps 1–3, and calls `app.ml.evaluation.evaluate` (TASK 8.1, unmodified) — CWRU's 4 real classes reduced to the same `0=normal`/`1=anomaly` binary target MAFAULDA's own experiments already use, fault-type detail preserved separately (`cwru_labels_present`).
-
----
-
-## 3. Methodology — what is real and already verified vs. what requires the dataset
-
-**Already real and verified** (no CWRU data needed for this part):
-
-- Running `_load_calibrated_model` against the real, standing `models/isolation_forest_v1.pkl` + `models/scaler_v1.pkl` and the real MAFAULDA validation files reproduces the exact threshold already persisted in `models/isolation_forest_v1.json` (**0.510328048907322**) to within `1e-9` — verified directly by executing the script's own code path in this environment (not assumed). The equivalent check for the Autoencoder (persisted threshold **0.016910125709661**, `models/autoencoder_v1.json`) is exercised by `backend/tests/scripts/test_run_cross_dataset_validation.py`.
-- Model trained on MAFAULDA: **yes** — `models/isolation_forest_v1.pkl`/`models/autoencoder_v1.pt`, unchanged, loaded via `load_model_artifact`.
-- Feature extraction used on CWRU (once real files exist): identical to MAFAULDA's own — same 15 features, same order, same `nperseg=256`/`noverlap=128`; only `fs` differs (CWRU's own real sampling rate, not MAFAULDA's 50 kHz).
-- Scaler used: `models/scaler_v1.pkl`, fit exclusively on MAFAULDA train data — never refit on CWRU (enforced structurally: the script never imports `StandardScaler.fit`/`fit_transform`, and a spy-based test confirms it is never called during a full pipeline run).
-- Threshold used: the value already persisted in the model's own `ModelArtifactMetadata` sidecar — never recalibrated on CWRU (enforced structurally: calibration is computed and asserted-consistent *before* any CWRU file is even loaded).
-- **No training/refit/fine-tuning/recalibration on CWRU anywhere**: confirmed by (a) the module never importing `app.ml.training`/`train_isolation_forest`/`train_autoencoder`, (b) a spy on `IsolationForest.fit` and `StandardScaler.fit`/`fit_transform` raising if called during a full pipeline run.
-
-**Requires the real dataset (NOT YET MEASURED)**:
-
-- Any CWRU feature value, any CWRU score, any CWRU-based metric.
-- Confirmation that the directory-layout contract in Section 2.1 actually matches the real uploaded files (it cannot be checked without them).
+1. Loads the real, standing `models/isolation_forest_v1.pkl` **or** `models/autoencoder_v1.pt` plus its TASK 6.5 metadata sidecar (`load_model_artifact`) — never retrained.
+2. Loads the real, standing `models/scaler_v1.pkl` — used only via `.transform()`, never refit.
+3. Recomputes score normalization (`app.ml.scoring.calibrate`) from the **real MAFAULDA validation split only** and asserts the result reproduces the model's already-persisted `threshold_value` — verified to hold exactly (see Section 3) before any CWRU file is scored.
+4. Loads every real CWRU recording, **groups them by their own real sampling rate** (12 kHz vs. 48 kHz — this download spans both under one root), and evaluates each group separately so no window computed at one frequency resolution is ever mixed with another's in the same evaluation.
+5. Extracts the same 15 DSP features, scores with the model/scaler/calibration from steps 1–3, calls `app.ml.evaluation.evaluate` (TASK 8.1, unmodified). CWRU's 4 real classes are reduced to `0=normal`/`1=anomaly` for the metric computation; the real fault-type labels are preserved separately (`cwru_labels_present`).
 
 ---
 
-## 4. Results
+## 3. Methodology — verified guarantees
 
-| Model | Precision | Recall | F1 | ROC-AUC | PR-AUC | Confusion Matrix | FPR | FNR | Inference time |
+- **Model trained on MAFAULDA, never retrained:** `models/isolation_forest_v1.pkl`/`models/autoencoder_v1.pt`, loaded unchanged via `load_model_artifact`. Verified structurally (this script never imports `app.ml.training`/`train_isolation_forest`/`train_autoencoder`) and by spy-based tests (`IsolationForest.fit`/`StandardScaler.fit`/`fit_transform` raise if called during a full pipeline run).
+- **Scaler never refit:** `models/scaler_v1.pkl`, fit exclusively on MAFAULDA train data, used only via `apply_scaler`/`predict` (transform only).
+- **Threshold never recalibrated on CWRU:** the value used is exactly the one already persisted in each model's `ModelArtifactMetadata` — **Isolation Forest: 0.510328048907322**, **Autoencoder: 0.016910125709661**. The intermediate min/max normalization (not persisted by TASK 6.5's schema) is recomputed from the **real MAFAULDA validation split only**, and the resulting threshold is asserted to reproduce the persisted value before any CWRU data is touched — **verified to hold exactly (within `1e-9`) for both models in the run these results come from.** CWRU never participates in this step.
+- **Sampling rate:** CWRU's own real rate (12 kHz or 48 kHz, per group) is passed to `extract_feature_matrix`, never MAFAULDA's 50 kHz.
+- **Labels:** CWRU's 4 real classes reduced to the same binary target MAFAULDA's own experiments use; fault-type detail preserved (`cwru_labels_present`).
+
+---
+
+## 4. Results (real, measured)
+
+### 12,000 Hz group (79,112 windows: 8,512 normal / 70,600 anomaly)
+
+| Model | Precision | Recall | F1 | ROC-AUC | PR-AUC | Confusion Matrix `[[TN,FP],[FN,TP]]` | FPR | FNR | Inference time (s) |
 |---|---|---|---|---|---|---|---|---|---|
-| Isolation Forest (`isolation_forest_v1`, threshold=0.510328) | NOT YET MEASURED | NOT YET MEASURED | NOT YET MEASURED | NOT YET MEASURED | NOT YET MEASURED | NOT YET MEASURED | NOT YET MEASURED | NOT YET MEASURED | NOT YET MEASURED |
-| Autoencoder (`autoencoder_v1`, threshold=0.016910) | NOT YET MEASURED | NOT YET MEASURED | NOT YET MEASURED | NOT YET MEASURED | NOT YET MEASURED | NOT YET MEASURED | NOT YET MEASURED | NOT YET MEASURED | NOT YET MEASURED |
+| Isolation Forest | 0.8924 | 1.0000 | 0.9431 | **0.6124** | 0.9201 | `[[0, 8512], [0, 70600]]` | **1.0000** | 0.0000 | 0.1094 |
+| Autoencoder | 0.8924 | 1.0000 | 0.9431 | **0.6752** | 0.9273 | `[[0, 8512], [0, 70600]]` | **1.0000** | 0.0000 | 0.0121 |
 
-**Why:** `scripts/run_cross_dataset_validation.py::run_cross_dataset_validation()` raises `CWRULoaderError` at the CWRU-loading step (verified directly, `backend/tests/scripts/test_run_cross_dataset_validation.py::test_run_cross_dataset_validation_raises_when_cwru_dataset_is_not_present`) because `data/external/cwru/` does not exist. No number in the table above has been computed, estimated, or approximated by any other means.
+### 48,000 Hz group (86,368 windows: 0 normal / 86,368 anomaly — single-class, see Section 1)
+
+| Model | Precision | Recall | F1 | ROC-AUC | PR-AUC | Confusion Matrix | FPR | FNR | Inference time (s) |
+|---|---|---|---|---|---|---|---|---|---|
+| Isolation Forest | 1.0000 | 1.0000 | 1.0000 | `NaN` (single class — sklearn's own convention, TASK 8.1) | 1.0000 (real value for an all-positive set — TASK 8.1's documented convention, not fabricated) | `[[0, 0], [0, 86368]]` | `NaN` (0 actual negatives) | 0.0000 | 0.1284 |
+| Autoencoder | 1.0000 | 1.0000 | 1.0000 | `NaN` | 1.0000 | `[[0, 0], [0, 86368]]` | `NaN` | 0.0000 | 0.0147 |
+
+These `NaN`/trivial-1.0 values are `app.ml.evaluation.evaluate`'s own documented, deliberate behavior for a single-class test set (TASK 8.1) — not an error, and not evidence of "perfect" performance: with zero real normal examples in this rate group, there is nothing to compute a false-positive rate or a meaningful precision against.
 
 ---
 
 ## 5. Interpretation
 
-**Not applicable yet.** No real generalization result exists to interpret. In particular, this report does **not** claim:
-- that the models generalize well, moderately, or poorly to CWRU;
-- that Isolation Forest or Autoencoder is "better" for cross-dataset use;
-- any expected direction for the result.
+**At the calibrated decision threshold, the models do not discriminate CWRU normal from CWRU faulty at all — everything is classified anomalous.** FPR = 1.0 at 12 kHz means every one of the 8,512 real CWRU normal windows was flagged as anomalous by both models, exactly like every real fault window. This is not "the model is slightly miscalibrated" — it is a complete failure of the calibrated *decision* to transfer.
 
-Once real CWRU data is uploaded under `data/external/cwru/` following the layout in Section 2.1 and `python -m scripts.run_cross_dataset_validation` is run from `backend/`, this section must be rewritten using the real, printed `metrics` dict for both models — replacing every `NOT YET MEASURED` cell in Section 4, not adding to them.
+**The continuous scores are not uninformative, however.** ROC-AUC (which does not depend on the threshold) is 0.6124 (Isolation Forest) and 0.6752 (Autoencoder) — above the 0.50 chance level, meaning the raw anomaly scores do rank at least some CWRU-normal windows below at least some CWRU-fault windows more often than not. This is modest, not strong, discriminative signal — nowhere near the levels this project's MAFAULDA-only results report (e.g. `docs/results/central_experiment_report.md`).
+
+**A plausible (not proven) explanation this report can offer, without overclaiming:** MAFAULDA's validation-derived min/max normalization (`fit_score_normalizer`) defines a `[0,1]` scale calibrated to MAFAULDA's own score range. If CWRU's raw scores — computed from a structurally different machine, sensors, and (for imbalance/misalignment vs. bearing faults) a different fault physics — fall mostly or entirely *outside* that MAFAULDA-calibrated range, `normalize_scores`' clipping would push most/all CWRU scores to `1.0`, which is exactly consistent with FPR=1.0 at 12 kHz. **This report does not have the additional ablation (e.g. inspecting the raw, pre-normalization score distributions for CWRU vs. MAFAULDA-validation) needed to confirm this is the actual mechanism**, so it is stated as a plausible reading of the pattern, not a demonstrated cause.
+
+**What this result does and does not say:**
+- It does **not** show that Isolation Forest or Autoencoder is "better" — both saturate to the same degenerate all-anomalous decision at 12 kHz, and both produce a trivial 100%-positive result at 48 kHz (no normal examples exist there to distinguish them). The Autoencoder's modestly higher ROC-AUC (0.675 vs. 0.612) is the only real, measured difference between them here.
+- It does **not** show that the underlying DSP feature set or either model is fundamentally incapable of separating normal from anomalous vibration signals in general — MAFAULDA-only results (elsewhere in `docs/results/`) show strong in-distribution performance from the same features/models.
+- It **does** show that this project's current pipeline — specifically, the MAFAULDA-validation-calibrated threshold and score normalization — does not generalize its *decision* to an unrelated dataset/machine/fault-family without re-calibration. Whether re-calibrating normalization (still never fitting a new model) on CWRU's own distribution would recover useful discrimination is a natural next question this task's scope (evaluate the existing artifacts as-is, no recalibration on CWRU) does not answer.
 
 ---
 
-## 6. Cross-dataset analysis (methodological, not results-based)
+## 6. Cross-dataset analysis
 
-Since no real CWRU measurement exists yet, this section only lays out real, disclosed structural differences a future result must be read against — it does not speculate about what the result will be.
-
-- **No shared fault type.** As noted in Section 1, MAFAULDA's fault classes (imbalance, horizontal/vertical misalignment) and CWRU's (ball, inner-race, outer-race bearing defects) do not overlap. A model trained only to recognize MAFAULDA's fault signatures being evaluated on CWRU is being asked to generalize across mechanically different anomaly types, not merely across a different sensor/dataset for the *same* fault. A future low score on CWRU could indicate the model is overfit to MAFAULDA's specific fault signatures, that bearing faults produce a genuinely different statistical footprint in these 15 features than imbalance/misalignment faults, or both — the result alone will not distinguish between these without further analysis.
-- **Sampling rate mismatch.** MAFAULDA is fixed at 50 kHz; CWRU is 12 kHz or 48 kHz depending on subset. The frequency-domain features (`dominant_frequency`, `spectral_centroid`, `spectral_bandwidth`, `spectral_energy`, `spectral_entropy`, `band_energy_10_100hz`) are computed via Welch PSD at each dataset's own real sampling rate — this keeps each feature physically meaningful in Hz for its own dataset, but the underlying frequency **resolution** (`fs`/`nperseg`) differs between a 50 kHz and a 12/48 kHz window of the same sample count. A result could indicate genuine model behavior, or could partly reflect this resolution difference — this report does not have grounds to attribute a future result to one cause over the other without further ablation.
-- **Window duration mismatch.** `window_size=1024` samples is reused unchanged from MAFAULDA's own configuration. At 50 kHz this is ~20.5 ms; at 12 kHz it is ~85.3 ms; at 48 kHz it is ~21.3 ms — so a CWRU (12 kHz) window covers roughly 4× more physical time than a MAFAULDA window. This is a real, disclosed consequence of reusing the sample-count-based window size rather than a time-based one, not something this task's scope (evaluate the existing pipeline as-is, no pipeline redesign) permits silently equalizing.
-- **Channel/sensor differences.** MAFAULDA windows come from a fixed channel (0) across 8 available channels; CWRU's real files carry 1–3 differently-named accelerometer channels (DE/FE/BA) at different physical mounting points. Which CWRU channel(s) are most comparable to MAFAULDA's channel 0 is not established by this task and is not assumed here.
-
-These are the same kind of caveats already disclosed for MAFAULDA-only results elsewhere in this project (e.g. `docs/results/central_experiment_report.md`'s own limitations section) — real, structural, and not something a bigger/better model would automatically resolve.
+- **No shared fault type.** MAFAULDA's imbalance/misalignment faults and CWRU's ball/inner-race/outer-race bearing faults do not overlap mechanically — see Section 1. The near-chance-to-modest ROC-AUC is consistent with the models having learned MAFAULDA-specific fault signatures that only partially transfer to a different fault family, but this report cannot isolate that from the normalization-range effect discussed in Section 5 without further work.
+- **Sampling rate / window duration.** `window_size=1024` samples is reused unchanged from MAFAULDA. At CWRU's 12 kHz this is ~85.3 ms per window (vs. ~20.5 ms for MAFAULDA at 50 kHz, and ~21.3 ms for CWRU's own 48 kHz group) — a real, disclosed ~4× difference in physical time span between the 12 kHz CWRU windows and MAFAULDA's own, a consequence of reusing a sample-count-based window size rather than a time-based one (out of this task's scope to redesign).
+- **Channel/sensor differences.** MAFAULDA uses a fixed channel (0) of 8; CWRU's real files expose 2–3 differently-positioned accelerometers (DE/FE/BA). This evaluation used every real channel present in each CWRU file (each becomes its own window set) — no attempt was made to select "the most comparable" CWRU channel to MAFAULDA's channel 0, since no such correspondence is established by this task.
+- **Class imbalance differs sharply between groups.** The 12 kHz group is heavily anomaly-weighted (89.2% of windows); the 48 kHz group is 100% anomaly. Precision/F1 in Section 4 must be read with this in mind — a trivial "always predict anomalous" classifier would already score precision=0.892/recall=1.0/F1=0.943 at 12 kHz by construction, which is exactly what both models' *decisions* reduce to here (FPR=1.0). The metric that actually reflects discrimination in this report is ROC-AUC, not precision/recall/F1.
 
 ---
 
 ## 7. Testing
 
-- `backend/tests/dataset/test_cwru_loader.py` (10 tests, all passing): directory/label/sampling-rate parsing against synthetic `.mat` fixtures (never presented as real CWRU data); real-dataset-absence behavior (`discover_recordings`/`load_all_recordings` raising `CWRULoaderError` against the actual, currently-missing `data/external/cwru/`).
-- `backend/tests/scripts/test_run_cross_dataset_validation.py` (7 tests, all passing): the real entry point raising against the real (missing) CWRU root; the module never referencing a training entry point; `IsolationForest.fit`/`StandardScaler.fit`/`fit_transform` spied and confirmed never called during a full pipeline run against a synthetic CWRU-shaped fixture tree; calibration confirmed computed exactly once, from MAFAULDA-validation-sized data, never from CWRU; a tampered-threshold scenario confirmed to raise rather than silently proceed; CWRU's real fault-type labels confirmed preserved alongside the binary metric.
-- Full backend suite (`pytest`, run from `backend/`): all pre-existing tests still pass after this task's changes (see final report for the exact count).
+- `backend/tests/dataset/test_cwru_loader.py` (15 tests): directory/label/sampling-rate parsing against synthetic `.mat` fixtures using the real, verified directory-naming convention; `Normal/`'s real override requirement; plus 3 tests against the real, present dataset (161 real files discovered; all 4 real labels and both real sampling rates loaded with the confirmed `normal_sampling_rate_hz=12000.0`; `Normal/` still raises without an explicit override).
+- `backend/tests/scripts/test_run_cross_dataset_validation.py`: the module never references a training entry point; `IsolationForest.fit`/`StandardScaler.fit`/`fit_transform` spied and confirmed never called during a full pipeline run; calibration confirmed computed exactly once, from MAFAULDA-validation-sized data; a tampered-threshold scenario confirmed to raise rather than silently proceed; CWRU's real fault-type labels confirmed preserved; plus tests against the real dataset confirming both real sampling-rate groups are produced and neither model is retrained/recalibrated on CWRU in the real run.
+- Full backend suite: all pre-existing tests still pass after this task's changes.
 
-**Definition of Done: NOT complete.** Per this task's own instructions, this is stated explicitly rather than silently implied: the CWRU loader is implemented, the pipeline can process CWRU once real files exist, and the "no retraining" guarantee is verified — but AC1 itself ("modelele antrenate pe MAFAULDA sunt evaluate pe CWRU ... rezultatele raportate onest") requires a real evaluation to have actually been run, which requires the real CWRU dataset. **The user must upload the real CWRU Bearing Dataset under `data/external/cwru/` (layout: Section 2.1) before this task's AC1 can be satisfied.**
+**Definition of Done: complete.** The CWRU loader is implemented and verified against the real, uploaded dataset; the pipeline processes real CWRU data end-to-end; both real MAFAULDA models were evaluated on it without any retraining, refitting, or recalibration on CWRU; the real, measured results are reported above, honestly, including the fact that the calibrated decision does not generalize — this is reported as the actual finding, not treated as a failure to hide.
